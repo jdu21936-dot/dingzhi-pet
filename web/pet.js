@@ -1853,13 +1853,16 @@ function doodleAdd(x, y) {
   const last = doodle.pts[doodle.pts.length - 1];
   if (last && Math.hypot(x - last.x, y - last.y) < 2.2) return;
   doodle.pts.push({ x, y });
+  doodle.last = performance.now();
   if (doodle.pts.length > 1200) doodle.pts.shift();
 }
 
 function drawDoodle(now) {
   if (!doodle) return;
   const t = now - doodle.t0;
-  if (t > doodle.dur) {
+  // 停笔 2.6 秒就结束：不用一直等到 7 秒，免得手指离开后还在抢触摸
+  const idle = doodle.last ? now - doodle.last : 0;
+  if (t > doodle.dur || (doodle.last && idle > 2600)) {
     if (doodle.pts.length > 8) spawnBubble(pickOne(['画的什么呀', '我看到了', '收下了', '这个我要留着']));
     doodle = null;
     return;
@@ -2006,9 +2009,11 @@ function drawFamily(now) {
   if (pb && pb.complete && pb.naturalWidth) trio.push(pb);
   if (!trio.length) return;
 
-  const gap = bw * 0.04;
-  const eachW = (bw * 1.9 - gap * (trio.length - 1)) / trio.length;
-  let x = w / 2 - (bw * 1.9) / 2;
+  // 三个角色并排，总宽不能超过屏幕（原来按 bw*1.9 算，直接是屏宽的 1.9 倍，两边全被裁）
+  const totalW = Math.min(bw * 1.9, w * 0.94);
+  const gap = totalW * 0.022;
+  const eachW = (totalW - gap * (trio.length - 1)) / trio.length;
+  let x = w / 2 - totalW / 2;
   const fadeIn = Math.min(1, t / 0.35);
   const fadeOut = t > FAMILY_DUR / 1000 - 0.5 ? Math.max(0, (FAMILY_DUR / 1000 - t) / 0.5) : 1;
   ctx2.save();
@@ -2200,6 +2205,19 @@ function doTray(act) {
 
 if (trayEl) {
   let trayBusy = 0;
+  let trayDownAt = null;
+  // 手指按下的位置：用来区分「点击」和「滑托盘」
+  trayEl.addEventListener('touchstart', function (e) {
+    const t = e.touches && e.touches[0];
+    trayDownAt = t ? { x: t.clientX, y: t.clientY } : null;
+  }, { passive: true });
+  function trayMoved(e) {
+    if (!trayDownAt) return false;
+    const t = (e.changedTouches && e.changedTouches[0]) || null;
+    if (!t) return false;
+    const dx = t.clientX - trayDownAt.x, dy = t.clientY - trayDownAt.y;
+    return (dx * dx + dy * dy) > 100;      // 超过 10px 视为滑动，不当作点击
+  }
   function trayHit(e) {
     const t = e.target;
     if (!t || !t.closest) return;
@@ -2215,6 +2233,8 @@ if (trayEl) {
   }
   trayEl.addEventListener('touchend', function (e) {
     e.stopPropagation();          // 别让 document 的 onUp 再走一遍手势逻辑
+    if (trayMoved(e)) { trayDownAt = null; return; }   // 滑托盘时手指离开不算点按钮
+    trayDownAt = null;
     trayHit(e);
   }, { passive: true });
   trayEl.addEventListener('click', function (e) {
