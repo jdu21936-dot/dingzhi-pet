@@ -1877,31 +1877,12 @@ function fitTray() {
   if (!trayEl) return;
   const vw = window.innerWidth || 150;
   const vh = window.innerHeight || 210;
-  // 方形网格：每页 4 列 × 2 行，贴底部居中（图标保留，布局回到方块）
-  const cols = 4, rows = 2;
-  const m = Math.max(4, Math.round(Math.min(vw, vh) * 0.045));
-  const gap = Math.max(2, Math.round(Math.min(vw, vh) * 0.022));
-  let cell = Math.floor(Math.min(
-    (vw - m * 2 - gap * (cols - 1)) / cols,
-    (vh - m * 2 - gap * (rows - 1)) / rows
-  ));
-  if (cell < 18) cell = 18;
-  const gw = cell * cols + gap * (cols - 1);
-  const gh = cell * rows + gap * (rows - 1);
-  const x0 = Math.round((vw - gw) / 2);
-  const y0 = Math.round(vh - gh - m);
+  // 右侧竖条：格子宽度跟着视口走，高度靠滚动解决，不再算坐标
+  const cell = Math.max(22, Math.min(34, Math.round(vw * 0.20)));
   trayEl.style.setProperty('--dot', cell + 'px');
-  const btns = trayEl.querySelectorAll('.tray-btn');
-  const seen = [0, 0];
-  for (let i = 0; i < btns.length; i++) {
-    const page = btns[i].getAttribute('data-page') === '1' ? 1 : 0;
-    const idx = seen[page]++;
-    const c = idx % cols;
-    const r = Math.floor(idx / cols);
-    btns[i].style.left = Math.round(x0 + c * (cell + gap) + cell / 2) + 'px';
-    btns[i].style.top = Math.round(y0 + r * (cell + gap) + cell / 2) + 'px';
-  }
+  trayEl.scrollTop = 0;
 }
+
 
 // ---------- 电量与通知栏 ----------
 // 手机快没电时她会蔫下来，插上充电器又会精神起来；
@@ -2292,8 +2273,6 @@ function toggleMini() {
 }
 
 function doTray(act) {
-  if (act === 'more') { trayEl.classList.add('page2'); bridge && bridge.log('托盘 -> 第二页'); return; }
-  if (act === 'back') { trayEl.classList.remove('page2'); bridge && bridge.log('托盘 -> 第一页'); return; }
   closeTray();
   if (bridge && bridge.log) { try { bridge.log('托盘点击 -> ' + act); } catch (e) {} }
   if (act === 'feed') { addFood(); setTimeout(function () { spawnBubble('给我的吗？'); }, 240); }
