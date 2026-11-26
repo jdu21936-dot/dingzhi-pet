@@ -293,3 +293,7 @@ html, body {
   0%, 100% { transform: translateY(1.5px) rotate(-1.2deg); }
   50%      { transform: translateY(3px)   rotate(1.2deg); }
 }
+
+/* 麦克风常听时按钮点亮 */
+.tray-btn.on { background: rgba(255,236,198,0.92); }
+.tray-btn.on svg { stroke: #b8721f; }
