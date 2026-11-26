@@ -195,12 +195,15 @@ html, body {
 #tray {
   position: absolute;
   left: 50%;
-  bottom: 6px;
-  width: 178px;
+  bottom: 5px;
+  /* 视口只有 150×210 CSS px（窗口 525×735 / density 3.5），宽度必须按百分比算，
+     写死 178px 会超出屏幕、右侧按钮点不到 */
+  width: 94%;
+  max-width: 176px;
   transform: translateX(-50%) translateY(0);
   background: rgba(239, 230, 211, 0.98);
-  border-radius: 16px;
-  padding: 7px 6px 8px;
+  border-radius: 14px;
+  padding: 5px 4px 6px;
   box-shadow: 0 8px 22px rgba(20, 24, 30, 0.26);
   z-index: 14;
   font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
@@ -212,23 +215,23 @@ html, body {
   pointer-events: none;
 }
 .tray-head {
-  font-size: 10px;
-  letter-spacing: .14em;
+  font-size: 9px;
+  letter-spacing: .10em;
   color: #8a8071;
   text-align: center;
-  padding-bottom: 5px;
+  padding-bottom: 4px;
 }
 .tray-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 3px;
+  gap: 2px;
 }
 .tray-btn {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 1px;
-  padding: 6px 1px 5px;
+  padding: 5px 0 4px;
   border: none;
   background: transparent;
   border-radius: 10px;
@@ -236,5 +239,5 @@ html, body {
   font-family: inherit;
 }
 .tray-btn:active { background: #e5d8bf; }
-.tray-btn b { font-size: 16px; line-height: 1.1; font-weight: 400; }
-.tray-btn i { font-size: 10px; font-style: normal; color: #6a6255; }
+.tray-btn b { font-size: 14px; line-height: 1.1; font-weight: 400; }
+.tray-btn i { font-size: 9px; font-style: normal; color: #6a6255; white-space: nowrap; }
