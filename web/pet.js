@@ -1493,19 +1493,10 @@ function onUp(e) {
   dragged = false;
 
   if (wasDragged && bridge && bridge.snapToEdge) {
-    // 松手后让 Java 判断离边缘够不够近，够近就半身挂到屏幕边上
+    // 松手后让 Java 判断离边缘够不够近，够近就吸附过去。
+    // 原来这里还会接着启动「探头」——把自己藏起来、只画露出的六成身子，
+    // 观感就是头被切掉一半，功能已删除，只留吸附。
     bridge.snapToEdge();
-    setTimeout(function () {
-      try {
-        const side = bridge.edge ? bridge.edge() : 0;
-        peekSide = side || 0;
-        peekCorner = (bridge.corner ? bridge.corner() : 0) || 0;
-        peekT0 = 0;
-        // 只探头：把整个人物藏起来，只让 canvas 画头
-        pet.style.visibility = peekSide ? 'hidden' : '';
-        if (peekSide) spawnBubble('探头～');
-      } catch (err) {}
-    }, 160);
   }
 }
 
@@ -2280,10 +2271,6 @@ function doTray(act) {
   else if (act === 'chute') { startParachute(); }
   else if (act === 'sleep') { startSleepNow(); }
   else if (act === 'char') { openPicker(); }
-  else if (act === 'edge') {
-    if (bridge && bridge.snapToEdge) { try { bridge.snapToEdge(); } catch (e) {} }
-    spawnBubble('贴这边');
-  }
   else if (act === 'scale') { toggleMini(); }
   else if (act === 'pat') { patHead(); spawnBubble(pickLine('shy')); }
   else if (act === 'doodle') { startDoodle(); }
