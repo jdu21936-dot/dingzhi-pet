@@ -1572,6 +1572,7 @@ function duoImg(src) {
 // needImages: 提前预载的图（通常传 CHARS 里 a/b/duo 的 src 数组），
 // 若未预载，动画会在图就绪后自动从第 1 帧开始（不卡顿）。
 function startDuoIntro() {
+  if (game) return;                              // 接饼干进行中不抢角色
   const ch = curChar();
   if (!ch || ch.id !== 'duo') return;
   if (duoIntro) return;                          // 播放中不重入
@@ -1760,6 +1761,7 @@ function refreshDuoDisplay() {
 // 约 1.7s 后淡出切回 duo 合体。无新素材，只复用画布与缓存。
 
 function startDuoPose() {
+  if (game) return false;                        // 接饼干进行中不抢角色
   const ch = curChar();
   if (!ch || ch.id !== 'duo') return false;
   if (duoIntro) return false;                    // 入场动画播放中不叠加
@@ -1922,6 +1924,31 @@ function fitTray() {
 let bat = { level: -1, charging: 0, at: 0 };
 let batState = '';
 
+// 低电量/充电时的外观。refreshBattery() 会调它，但这个函数此前被误删了
+// （删语音那轮），于是 refreshBattery 一跑就抛 ReferenceError，整个电量功能是哑的。
+function applyBatteryLook() {
+  try {
+    if (!bat || bat.level < 0) { pet.classList.remove('tired'); return; }
+    pet.classList.toggle('tired', bat.level <= 15 && !bat.charging);
+  } catch (e) {}
+}
+
+// 通知栏副标题。bumpStat 里 1.5s 后会调，同样曾被误删，
+// 结果每摸一下就在 setTimeout 里抛一次 ReferenceError。
+function refreshNotify() {
+  if (!bridge || !bridge.setNotifyText) return;
+  try {
+    loadStats();
+    const parts = [];
+    const pat = STATS.pat | 0, feed = STATS.feed | 0;
+    if (pat + feed > 0) parts.push('今天被摸 ' + pat + ' 次、喂 ' + feed + ' 次');
+    if (bat && bat.level >= 0) parts.push('电量 ' + bat.level + '%' + (bat.charging ? '·充电中' : ''));
+    if (typeof WX !== 'undefined' && WX && WX.temp != null) parts.push(Math.round(WX.temp) + '°C');
+    if (!parts.length) parts.push('点我一下试试');
+    bridge.setNotifyText(parts.join(' · '));
+  } catch (e) {}
+}
+
 const LOW_BAT_LINES = ['快没电了…我也没劲了', '手机快关机了，充会儿吧', '电量见底了…'];
 const CHARGING_LINES = ['充上电了！', '有电真好～', '满血复活中'];
 const FULL_LINES = ['吃饱电了', '电充满了，谢谢你'];
@@ -2034,6 +2061,7 @@ let familyShow = null;
 const FAMILY_DUR = 7200;
 
 function startFamily() {
+  if (game) return;                              // 接饼干进行中不抢角色
   if (familyShow) { familyShow = null; pet.style.visibility = ''; return; }
   clearOverlays('family');
   familyShow = { t0: performance.now() };
@@ -2115,7 +2143,9 @@ let game = null;
 // clientX 会是负数或几百，不夹的话角色直接被画到画布外，观感就是"一移动就消失"。
 function clampGameX(x) {
   const vw = fx.clientWidth || window.innerWidth || 150;
-  const pad = Math.max(18, vw * 0.12);
+  // 角色内容约 94px 宽（object-fit:contain 后），半宽 47。
+  // 太靠边时整块被窗口裁掉，看着像"半个身子"，所以留 30% 视口做边距。
+  const pad = Math.max(26, vw * 0.30);
   if (!(x === x)) return vw / 2;
   return Math.max(pad, Math.min(vw - pad, x));
 }
