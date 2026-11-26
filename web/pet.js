@@ -208,6 +208,7 @@ function bumpStat(k) {
   loadStats();
   STATS[k] = (STATS[k] | 0) + 1;
   saveStats();
+  setTimeout(refreshNotify, 60);
 }
 
 // 晚上第一次搭话时报今天的数字；没被碰过就不说，免得每句都是 0
@@ -1324,7 +1325,7 @@ function onMove(e) {
   }
   // 取消长按要迟钝一点：手指按住时的轻微抖动不该把 400ms 的定时器清掉，
   // 所以拖动的起步阈值（5px）和掐断长按的阈值（14px）分开算
-  if (!press.holdKilled && moved > 14) {
+  if (!press.holdKilled && moved > 20) {
     press.holdKilled = true;
     clearTimeout(press.holdTimer);
   }
@@ -1392,6 +1393,15 @@ function onUp(e) {
     if (pendX || pendY) flushMove();
     press = null;
     dragged = false;
+    return;
+  }
+
+  // 长按的定时器可能被一次抖动 touchmove 清掉（有些 ROM 一次能报 30px 的假位移）。
+  // 所以松手时再判一次：按住够 400ms 且没真拖动，就当长按处理，保证「有时候弹不出」不再发生。
+  if (!dragged && !press.trayShown && held >= 400) {
+    press.trayShown = true;
+    openTray();
+    press = null;
     return;
   }
 
@@ -1873,6 +1883,54 @@ function fitTray() {
   trayEl.style.setProperty('--dot', d.toFixed(1) + 'px');
 }
 
+// ---------- 电量与通知栏 ----------
+// 手机快没电时她会蔫下来，插上充电器又会精神起来；
+// 顺便把状态写进通知栏，下拉就能看见她今天过得怎么样。
+let bat = { level: -1, charging: 0, at: 0 };
+let batState = '';
+
+const LOW_BAT_LINES = ['快没电了…我也没劲了', '手机快关机了，充会儿吧', '电量见底了…'];
+const CHARGING_LINES = ['充上电了！', '有电真好～', '满血复活中'];
+const FULL_LINES = ['吃饱电了', '电充满了，谢谢你'];
+
+function refreshBattery() {
+  if (!bridge) return;
+  try {
+    if (bridge.batteryLevel) bat.level = Number(bridge.batteryLevel());
+    if (bridge.isCharging) bat.charging = Number(bridge.isCharging()) ? 1 : 0;
+  } catch (e) {}
+  bat.at = Date.now();
+  applyBatteryLook();
+}
+
+function applyBatteryLook() {
+  const lv = bat.level;
+  const now = bat.charging ? 'charging' : (lv >= 0 && lv <= 15 ? 'low' : 'normal');
+  if (now === batState) return;
+  const prev = batState;
+  batState = now;
+  if (now === 'low') {
+    pet.classList.add('tired');
+    if (prev) spawnBubble(pickOne(LOW_BAT_LINES));
+  } else {
+    pet.classList.remove('tired');
+    if (now === 'charging' && prev) {
+      spawnBubble(lv >= 99 ? pickOne(FULL_LINES) : pickOne(CHARGING_LINES));
+      react('hop', 420);
+    }
+  }
+}
+
+// 通知栏副标题：摸了几次、电量多少、在干嘛
+function refreshNotify() {
+  if (!bridge || !bridge.setNotifyText) return;
+  const parts = [];
+  if (STATS.pat || STATS.feed) parts.push('今天被摸 ' + STATS.pat + ' 次、喂 ' + STATS.feed + ' 次');
+  if (bat.level >= 0) parts.push('电量 ' + bat.level + '%' + (bat.charging ? '（充电中）' : ''));
+  if (WX && WX.code !== undefined && WX.temp !== undefined) parts.push(WX.temp + '°C');
+  try { bridge.setNotifyText(parts.length ? parts.join(' · ') : '点这里可以打开状态页，或点「关闭」退出'); } catch (e) {}
+}
+
 function startDoodle() {
   doodle = { pts: [], t0: performance.now(), dur: 7000 };
   spawnBubble(pickOne(['画吧，我在看', '给你张纸', '写点什么？']));
@@ -2321,4 +2379,7 @@ window.__onUpdate = function (text, ev) {
   setInterval(refreshWeather, 30 * 60 * 1000);
   // 版本更新检查：有新版自动下载安装（URL 未配置时 Java 侧自动跳过）
   try { if (bridge && bridge.checkUpdate) bridge.checkUpdate(); } catch (e) {}
+  refreshBattery();
+  setTimeout(refreshNotify, 1200);
+  setInterval(function () { refreshBattery(); refreshNotify(); }, 60000);
 })();
