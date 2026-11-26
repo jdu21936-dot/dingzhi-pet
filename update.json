@@ -1,1 +1,1 @@
-{"versionCode":50,"versionName":"1.48","url":"https://raw.githubusercontent.com/jdu21936-dot/dingzhi-pet/main/dingzhi-pet.apk","note":"新增 7 个互动动作：戳肚子、拖着挣扎、眼神跟随、发呆打盹、喂到嘴边、双击转圈、摸头享受"}
+{"versionCode":51,"versionName":"1.49","url":"https://raw.githubusercontent.com/jdu21936-dot/dingzhi-pet/main/dingzhi-pet.apk","note":"修复点击双子时角色凭空消失的问题（素材预加载 + 交叉淡出）"}
