@@ -1839,6 +1839,8 @@ function fitTray() {
   trayEl.style.setProperty('--tray-head', Math.max(6.5, Math.min(9, cell * 0.26)).toFixed(1) + 'px');
   trayEl.style.setProperty('--tray-emoji', Math.max(8, Math.min(15, cell * 0.42)).toFixed(1) + 'px');
   trayEl.style.setProperty('--tray-fs', Math.max(5.5, Math.min(9, cell * 0.27)).toFixed(1) + 'px');
+  // 格子太小的时候标签只剩一团墨点，索性只留图标
+  trayEl.classList.toggle('compact', cell < 27);
 }
 
 function startDoodle() {
