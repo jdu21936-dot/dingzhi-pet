@@ -2152,6 +2152,13 @@ function clampGameX(x) {
 const GAME_TARGET = 10;
 
 function startGame() {
+  // 真机上量一次，日志里能直接看出自适应到底有没有生效
+  try {
+    const bx = objectRect(pet);
+    bridge.log('接饼干 u=' + gameUnit().toFixed(2)
+      + ' 角色宽=' + Math.round(bx ? bx.width : 0)
+      + ' 视口=' + Math.round(fx.clientWidth) + 'x' + Math.round(fx.clientHeight));
+  } catch (e) {}
   if (game) {                               // 再点一次就退出，避免卡在隐藏状态
     if (bridge && bridge.log) { try { bridge.log('接饼干：退出'); } catch (e) {} }
     endGame(false);
@@ -2176,18 +2183,18 @@ function startGame() {
 // 留下的左右透明边，返回的是画面里真正能看到的那块像素范围。
 // 于是不管双指放大缩小、还是换成 duo 双子（内容本来更宽），
 // 饼干相对角色的比例始终一样。94 是视口 150px 时单人角色的内容宽，作为 1.0 基准。
-const GAME_BASE_W = 94;
+const GAME_BASE_W = 94;      // 视口 150px 时单人角色的内容宽
+const GAME_BASE_VW = 150;    // 基准视口宽
 function gameUnit(w) {
-  let bw = 0;
+  const vw = w || fx.clientWidth || window.innerWidth || GAME_BASE_VW;
+  const uView = vw / GAME_BASE_VW;          // 窗口被双指放大后视口变宽
+  let uRole = 0;                            // 角色本身在画面里占多宽
   try {
     const box = objectRect(pet);
-    if (box && box.width) bw = box.width;
+    if (box && box.width > 8) uRole = box.width / GAME_BASE_W;
   } catch (e) {}
-  if (!(bw > 8)) {
-    const vw = w || fx.clientWidth || window.innerWidth || 150;
-    bw = vw * (GAME_BASE_W / 150);   // 量不到角色时退回按视口估算
-  }
-  return Math.max(0.7, Math.min(2.6, bw / GAME_BASE_W));
+  // 两个口径取大的那个：视口没变但角色变大、或角色量不到，都能跟上
+  return Math.max(0.7, Math.min(2.6, Math.max(uView, uRole || 0)));
 }
 
 function tickGame(now, dt) {
@@ -2199,7 +2206,7 @@ function tickGame(now, dt) {
   if (now - g.t0 > g.next) {
     g.next = now - g.t0 + Math.max(380, 900 - g.score * 40);
     const u = gameUnit(w);
-    const cw = 8 * u;
+    const cw = 13 * u;
     g.cookies.push({
       x: 30 * u + Math.random() * Math.max(20, w - 60 * u),
       y: -12 * u,
@@ -2248,7 +2255,7 @@ function drawGame(now) {
   const gu = gameUnit(w);
   for (let i = 0; i < g.cookies.length; i++) {
     const c = g.cookies[i];
-    const cr = c.r || 8 * gu;
+    const cr = c.r || 13 * gu;
     ctx2.save();
     ctx2.translate(c.x, c.y);
     ctx2.rotate(c.spin);
