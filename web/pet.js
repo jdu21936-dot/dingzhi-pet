@@ -1319,20 +1319,18 @@ function onMove(e) {
   lookAt(t.clientX, t.clientY);
   const dx = t.clientX - press.lastX;
   const dy = t.clientY - press.lastY;
-  // 拖动起步阈值 5px：一挪就跟手，不用先拖出一段距离角色才动
+  // 拖动起步阈值 5px：一挪就跟手，不需要先长按也不需要拖出一段距离
   const moved = Math.hypot(t.clientX - press.x, t.clientY - press.y);
   if (!dragged && moved > 5) {
     dragged = true;
+    // 一开始拖就立刻掐掉长按定时器。留到这个之后再清，手指拖了 5–20px 的这段时间里
+    // 定时器照样会到点，托盘突然弹出把拖动打断 —— 就是「拖不动」的观感。
+    press.holdKilled = true;
+    clearTimeout(press.holdTimer);
     clearTimeout(press.enjoyTimer);
     stopEnjoy();
     pet.classList.add('dangle');
     if (Math.random() < 0.7) spawnBubble('放我下来～');
-  }
-  // 取消长按要迟钝一点：手指按住时的轻微抖动不该把 400ms 的定时器清掉，
-  // 所以拖动的起步阈值（5px）和掐断长按的阈值（14px）分开算
-  if (!press.holdKilled && moved > 20) {
-    press.holdKilled = true;
-    clearTimeout(press.holdTimer);
   }
   if (dragged && bridge) {
     const sx = (t.screenX !== undefined ? t.screenX : t.clientX);
