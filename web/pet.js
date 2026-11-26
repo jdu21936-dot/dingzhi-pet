@@ -2168,7 +2168,8 @@ function startGame() {
   game = { cookies: [], score: 0, t0: performance.now(), next: 0, x: 0, speed: 46, miss: 0, pop: null };
   const r = pet.getBoundingClientRect();
   game.cx = r.left + r.width / 2;      // 角色原本的中心，横向平移以它为基准
-  game.x = clampGameX(game.cx);
+  const vw0 = fx.clientWidth || window.innerWidth || 150;
+  game.x = clampGameX(vw0 / 2);        // 进游戏先把角色摆到正中
   // 不再隐藏角色。canvas 只画饼干和分数，角色本体仍由 <img> 显示，
   // 大小/装扮/待机动画跟平时完全一样，横向位置用 translate 平移过去。
   // 之前是「藏起 <img> + 自己在 canvas 里画一个」，两套尺寸算法一对不上就变小、就分身。
@@ -2206,13 +2207,15 @@ function tickGame(now, dt) {
   if (now - g.t0 > g.next) {
     g.next = now - g.t0 + Math.max(380, 900 - g.score * 40);
     const u = gameUnit(w);
-    // 半径直接跟视口宽走（约 7.5%），比按单位算稳，窗口放大就是更大的一颗
-    const cw = Math.max(10, w * 0.075);
-    // 边距固定按视口算：之前 30*u / 60*u 在 u 大时会把所有饼干挤在中间一小段里
-    const pad = Math.max(16, w * 0.12);
+    // 半径取视口宽的 16%：129px 视口下直径约 41px，肉眼就是一颗大饼干
+    const cw = Math.max(18, w * 0.16);
+    const pad = cw + 4;
+    // 落在角色正上方附近（左右各四分之一屏），居中、也接得住
+    let cx0 = g.x + (Math.random() - 0.5) * w * 0.55;
+    cx0 = Math.max(pad, Math.min(w - pad, cx0));
     g.cookies.push({
-      x: pad + Math.random() * Math.max(10, w - pad * 2),
-      y: -14 * u,
+      x: cx0,
+      y: -cw * 1.6,
       vy: (g.speed + g.score * 7) * Math.max(0.8, u * 0.9),
       spin: Math.random() * 6,
       r: cw
@@ -2276,7 +2279,7 @@ function drawGame(now) {
   const mouthY = r.top + r.height * 0.30;   // 大约嘴巴的位置，饼干往这里收
   for (let i = g.cookies.length - 1; i >= 0; i--) {
     const c = g.cookies[i];
-    const cr = c.r || Math.max(10, w * 0.075);
+    const cr = c.r || Math.max(18, w * 0.16);
     if (c.eat) {
       const k = (now - c.eat) / EAT_MS;
       if (k >= 1) { g.cookies.splice(i, 1); continue; }
@@ -2294,14 +2297,14 @@ function drawGame(now) {
       ctx2.save();
       ctx2.globalAlpha = 1 - pt;
       ctx2.fillStyle = '#e0703a';
-      ctx2.font = '700 ' + (13 * gu).toFixed(1) + 'px "Microsoft YaHei", "PingFang SC", sans-serif';
-      ctx2.fillText('+1', g.pop.x - 7 * gu, g.pop.y - (8 + pt * 16) * gu);
+      ctx2.font = '700 ' + (19 * gu).toFixed(1) + 'px "Microsoft YaHei", "PingFang SC", sans-serif';
+      ctx2.fillText('+1', g.pop.x - 10 * gu, g.pop.y - (10 + pt * 18) * gu);
       ctx2.restore();
     }
   }
   ctx2.fillStyle = 'rgba(58,52,46,.85)';
-  ctx2.font = '600 ' + (12 * gu).toFixed(1) + 'px "Microsoft YaHei", "PingFang SC", sans-serif';
-  ctx2.fillText(g.score + ' / ' + GAME_TARGET, 12 * gu, 22 * gu);
+  ctx2.font = '700 ' + (17 * gu).toFixed(1) + 'px "Microsoft YaHei", "PingFang SC", sans-serif';
+  ctx2.fillText(g.score + ' / ' + GAME_TARGET, 14 * gu, 28 * gu);
   ctx2.restore();
 }
 
