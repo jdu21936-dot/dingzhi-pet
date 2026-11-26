@@ -1252,7 +1252,6 @@ function onDown(e) {
   // 否则 touchend 时托盘已 pointer-events:none，click 永远不触发（表现为「按钮点了没反应」）
   if (e.target && e.target.closest && e.target.closest('#tray')) return;
   if (doodle) doodle = null;     // 涂鸦期间按下先收笔，否则 onMove 全被 doodleAdd 吃掉，拖不动
-  if (ghostOn) { toggleGhost(); return; }        // 藏起来状态下点一下恢复
   // 托盘打开时不要一碰就收：环形菜单正好压在角色身上，手指抖一下就没影子了。
   // 记下打开时刻，400ms 内的触摸都当作「还在看菜单」，只有明确点空白处才收起。
   if (trayOpen()) {
@@ -2257,8 +2256,6 @@ function endGame(win) {
 const trayEl = document.getElementById('tray');
 let sleepTimer = null;
 let miniOn = false;
-let ghostOn = false;
-let scaleBeforeGhost = 1.0;
 
 function trayOpen() { return trayEl && !trayEl.classList.contains('hidden'); }
 let trayOpenedAt = 0;
@@ -2294,22 +2291,6 @@ function toggleMini() {
   spawnBubble(miniOn ? '变小一点' : '回来啦');
 }
 
-function toggleGhost() {
-  if (!bridge || !bridge.setScaleF) return;
-  if (!ghostOn) {
-    try { scaleBeforeGhost = Number(bridge.getScale ? bridge.getScale() : 1) || 1; } catch (e) { scaleBeforeGhost = 1; }
-    ghostOn = true;
-    try { bridge.setScaleF(0.28); } catch (e) {}
-    pet.style.opacity = '0.3';
-    spawnBubble('藏一下…点我出来');
-  } else {
-    ghostOn = false;
-    try { bridge.setScaleF(scaleBeforeGhost || 1.0); } catch (e) {}
-    pet.style.opacity = '';
-    spawnBubble('我回来啦');
-  }
-}
-
 function doTray(act) {
   if (act === 'more') { trayEl.classList.add('page2'); bridge && bridge.log('托盘 -> 第二页'); return; }
   if (act === 'back') { trayEl.classList.remove('page2'); bridge && bridge.log('托盘 -> 第一页'); return; }
@@ -2325,7 +2306,6 @@ function doTray(act) {
     spawnBubble('贴这边');
   }
   else if (act === 'scale') { toggleMini(); }
-  else if (act === 'ghost') { toggleGhost(); }
   else if (act === 'pat') { patHead(); spawnBubble(pickLine('shy')); }
   else if (act === 'doodle') { startDoodle(); }
   else if (act === 'family') { startFamily(); }
