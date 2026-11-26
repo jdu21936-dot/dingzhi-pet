@@ -1900,8 +1900,8 @@ function refreshBattery() {
   applyBatteryLook();
 }
 // ---------- 简笔换装 ----------
-const OUTFITS = ['none', 'straw', 'beanie', 'crown', 'scarf', 'ribbon'];
-const OUTFIT_LINES = { straw: '草帽！', beanie: '暖和吧', crown: '我是王', scarf: '围巾软软的', ribbon: '蝴蝶结好看吗' };
+const OUTFITS = ['none', 'straw', 'beanie', 'crown', 'ribbon'];
+const OUTFIT_LINES = { straw: '草帽！', beanie: '暖和吧', crown: '我是王', ribbon: '蝴蝶结好看吗' };
 let outfit = 'none';
 try { outfit = localStorage.getItem('pet.outfit') || 'none'; } catch (e) {}
 if (OUTFITS.indexOf(outfit) < 0) outfit = 'none';
@@ -1952,27 +1952,6 @@ function paintOutfit(ctx2, cx, top, neckY, u, bob, kind) {
     ctx2.lineTo(cx + w2, top + 3 * u + bob);
     ctx2.closePath();
     ctx2.fill(); ctx2.stroke();
-  } else if (kind === 'scarf') {
-    const ny = neckY + bob;
-    // 原来主环只有 21u×6u，双子半身宽约 100u，围巾不到肩宽的一半，
-    // 看着像挂在脖子上的一条线。改成 37u×11u，压住整个肩颈交界。
-    ctx2.fillStyle = '#7d9ec4';
-    ctx2.beginPath();
-    ctx2.ellipse(cx, ny, 37 * u, 11 * u, 0, 0, Math.PI * 2);
-    ctx2.fill(); ctx2.stroke();
-    // 垂下来的一截：加宽加长，带一点角度，像被塞进衣领里
-    ctx2.beginPath();
-    ctx2.ellipse(cx + 14 * u, ny + 22 * u, 9.5 * u, 19 * u, 0.16, 0, Math.PI * 2);
-    ctx2.fill(); ctx2.stroke();
-    // 两道褶皱：不然就是一块死板的椭圆
-    ctx2.beginPath();
-    ctx2.moveTo(cx - 24 * u, ny + 2.5 * u);
-    ctx2.lineTo(cx - 7 * u, ny + 3.8 * u);
-    ctx2.stroke();
-    ctx2.beginPath();
-    ctx2.moveTo(cx + 6 * u, ny + 3.4 * u);
-    ctx2.lineTo(cx + 22 * u, ny + 1.8 * u);
-    ctx2.stroke();
   } else if (kind === 'ribbon') {
     const ty = top - 2 * u + bob;
     ctx2.fillStyle = '#e88ba6';
@@ -2000,7 +1979,9 @@ function drawOutfit(now) {
   if (r.top < -r.height * 0.5) return;      // 角色被伞降甩到屏幕外时不画
   const ctx2 = fx.getContext('2d');
   const top = r.top + r.height * 0.035;
-  const neckY = r.top + r.height * 0.335;   // 0.30 偏上，围巾会压到下巴
+  // 脖子位置实测：char_a 内容高 480px，头部占到 frac 0.43，最窄处在 0.438（行宽 92px），
+  // 肩在 0.55（行宽 200px）。之前写 0.30/0.335 都落在头部区间里，所以围巾糊在脸上。
+  const neckY = r.top + r.height * 0.438;
   const duoMode = curChar().id === 'duo';
   // 双子是两个人并排（duo.png = char_a 左 + char_b 右），装束要一人一份，
   // 分别落在 1/4 和 3/4 的中心线上，尺寸也按半宽算，否则会变成两人中间悬空一个帽子。
