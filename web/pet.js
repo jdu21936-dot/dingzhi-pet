@@ -280,6 +280,7 @@ async function refreshWeather() {
     applyWeatherLook();
     if (raining && !wasRain) {
       setTimeout(() => spawnBubble(pickLine('rain')), 1600);
+      setTimeout(() => { if (!chute && !duoIntro && !duoPose) startParachute(); }, 2600);
     }
     if (WX.code !== null && SNOW_CODES.indexOf(WX.code) >= 0) {
       setTimeout(() => spawnBubble('下雪了…'), 2200);
@@ -815,9 +816,11 @@ let peekSide = 0;
 const CHUTE_DUR = 4400;
 
 function startParachute() {
-  // 开伞已下线：它靠 transform 把角色推到窗口上方（dy 最大 62% 视口高），
-  // 起步那几秒角色大半在窗口外，看起来就是头被切掉。函数留着当空壳，
-  // 免得别处的引用炸掉；chute 永远是 null，drawChute 直接 return。
+  if (chute) return;                    // 画布上画伞，不需要 bridge
+  pet.classList.remove('hop', 'wiggle', 'shy');
+  chute = { t0: performance.now(), dur: CHUTE_DUR, done: 0 };
+  spawnBubble('跳伞～');
+  playSound('head');
 }
 
 function drawChute(now) {
@@ -828,9 +831,9 @@ function drawChute(now) {
   const fold = chute.done ? Math.min(1, (now - chute.done) / 300) : 0;
 
   const ease = 1 - Math.pow(1 - p, 1.75);        // 先快后慢，像被伞拽着
-  const dy = -(1 - ease) * h * 0.62;
+  const dy = -(1 - ease) * h * 0.16;   // 原为 0.62：角色会被推出窗口顶部，头被切一半
   const sway = Math.sin(p * Math.PI * 4.6) * 5;  // 左右轻摆
-  const sc = chute.done ? 1 : 0.74 + 0.26 * ease;
+  const sc = chute.done ? 1 : 0.92 + 0.08 * ease;
 
   pet.style.transformOrigin = '50% 90%';
   pet.style.transform =
@@ -2265,6 +2268,7 @@ function doTray(act) {
   if (bridge && bridge.log) { try { bridge.log('托盘点击 -> ' + act); } catch (e) {} }
   if (act === 'feed') { addFood(); setTimeout(function () { spawnBubble('给我的吗？'); }, 240); }
   else if (act === 'say') { spawnBubble(randomLine()); }
+  else if (act === 'chute') { startParachute(); }
   else if (act === 'sleep') { startSleepNow(); }
   else if (act === 'char') { openPicker(); }
   else if (act === 'scale') { toggleMini(); }
