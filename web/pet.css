@@ -260,9 +260,6 @@ html, body {
 .tray-btn:active { background: rgba(20, 18, 16, 0.88); color: #fffdfa; }
 .tray-btn:active i { color: #fffdfa; }
 /* 第二页整页切换，不叠在第一页上 */
-.tray-btn[data-page="1"] { display: none; }
-#tray.page2 .tray-btn[data-page="0"] { display: none; }
-#tray.page2 .tray-btn[data-page="1"] { display: flex; }
 
 /* ---------- v1.53：作息 / 天气 / 换装 ---------- */
 #pet.night  { filter: brightness(.72) saturate(.9); }
