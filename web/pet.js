@@ -668,7 +668,7 @@ function drawExtras(now, dt) {
 }
 
 function drawFrame(now) {
-  ensurePetVisible();
+  syncPetVisibility();
   const w = fx.clientWidth || window.innerWidth;
   const h = fx.clientHeight || window.innerHeight;
   ctx.clearRect(0, 0, w, h);
@@ -1237,10 +1237,15 @@ function drawBubbles(now) {
   requestAnimationFrame(drawBubbles);
 }
 
-// 兜底：没有任何画布独占状态，角色却还藏着 -> 说明某条路径漏了恢复，立刻显回来。
-function ensurePetVisible() {
-  if (duoIntro || duoPose || familyShow || game) return;
-  if (pet.style.visibility === 'hidden') {
+// 角色显隐的唯一裁决点。
+// 之前是各写各的：startGame 隐藏、duoIntro 播完无条件显示，两边撞上就成了「分身」——
+// canvas 在画一个、<img> 也显着，位置只差几像素，看起来像两个。
+// 改成每帧按状态强制同步一次，任何一方改错都会在下一帧被纠正。
+function syncPetVisibility() {
+  const busy = !!(duoIntro || duoPose || familyShow || game);
+  if (busy) {
+    if (pet.style.visibility !== 'hidden') pet.style.visibility = 'hidden';
+  } else if (pet.style.visibility === 'hidden') {
     pet.style.visibility = '';
     pet.style.opacity = '';
   }
@@ -2116,12 +2121,17 @@ function clampGameX(x) {
 const GAME_TARGET = 10;
 
 function startGame() {
-  if (game) { endGame(false); return; }     // 再点一次就退出，避免卡在隐藏状态
+  if (game) {                               // 再点一次就退出，避免卡在隐藏状态
+    if (bridge && bridge.log) { try { bridge.log('接饼干：退出'); } catch (e) {} }
+    endGame(false);
+    return;
+  }
   clearOverlays('game');
   game = { cookies: [], score: 0, t0: performance.now(), next: 0, x: 0, speed: 46, miss: 0, pop: null };
   const r = pet.getBoundingClientRect();
   game.x = clampGameX(r.left + r.width / 2);
   pet.style.visibility = 'hidden';
+  if (bridge && bridge.log) { try { bridge.log('接饼干：开始'); } catch (e) {} }
   spawnBubble('接住饼干！');
 }
 
@@ -2163,6 +2173,7 @@ function drawGame(now) {
   const g = game;
   if (!g) return;
   const ctx2 = fx.getContext('2d');
+  ctx2.setTransform(1, 0, 0, 1, 0, 0);   // 清掉可能残留的变换，避免角色被画到偏移位置
   const r = pet.getBoundingClientRect();
   const w = fx.clientWidth || window.innerWidth;
   const h = fx.clientHeight || window.innerHeight;
