@@ -1,6 +1,6 @@
 {
- "versionCode": 101,
- "versionName": "1.99",
+ "versionCode": 102,
+ "versionName": "2.00",
  "url": "https://raw.githubusercontent.com/jdu21936-dot/dingzhi-pet/main/dingzhi-pet.apk",
- "note": "加帧循环看门狗与可见性兜底（不再卡死/人物消失），拖动上报合并降低主线程压力"
+ "note": "修接饼干分身（角色显隐统一裁决）与退出不生效"
 }
