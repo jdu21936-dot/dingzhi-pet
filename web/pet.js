@@ -681,7 +681,6 @@ function drawBubbles(now) {
     tickGame(now, __dt);
     if (game) drawGame(now);
   }
-  drawDoodle(now);
   if (!duoIntro && !duoPose && !familyShow && !game) drawOutfit(now);
   for (let i = BUBBLES.length - 1; i >= 0; i--) {
     const b = BUBBLES[i];
@@ -1224,7 +1223,6 @@ function endPinch() {
 function onDown(e) {
   noteTouch();
   // 双子组合出场动画 / 插腰站姿互动期间忽略触摸，避免把正在播放的动画拖走/打断
-  if (doodle) { doodleAdd(e.touches[0].clientX, e.touches[0].clientY); return; }
   if (game) { game.x = e.touches[0].clientX; return; }
   if (familyShow) { familyShow = null; pet.style.visibility = ''; return; }
   if (duoIntro || duoPose) {
@@ -1246,10 +1244,6 @@ function onDown(e) {
   // 手指落在托盘上：交给托盘自己的 click 处理，不能在这里收起它，
   // 否则 touchend 时托盘已 pointer-events:none，click 永远不触发（表现为「按钮点了没反应」）
   if (e.target && e.target.closest && e.target.closest('#tray')) return;
-  if (doodle) {                 // 涂鸦期间按下先收笔，否则 onMove 全被 doodleAdd 吃掉，拖不动
-    doodle = null;
-    try { if (bridge && bridge.setFullscreen) bridge.setFullscreen(false); } catch (e) {}
-  }
   // 托盘打开时不要一碰就收：环形菜单正好压在角色身上，手指抖一下就没影子了。
   // 记下打开时刻，400ms 内的触摸都当作「还在看菜单」，只有明确点空白处才收起。
   if (trayOpen()) {
@@ -1310,7 +1304,6 @@ function onMove(e) {
     updatePinch(e.touches);
     return;
   }
-  if (doodle) { const dd = e.touches[0]; doodleAdd(dd.clientX, dd.clientY); return; }
   if (game) { game.x = e.touches[0].clientX; return; }
   if (!press) return;
   const t = e.touches ? e.touches[0] : e;
@@ -1361,7 +1354,7 @@ function onUp(e) {
     if (remain < 2) endPinch();
     return;
   }
-  if (doodle || game) return;
+  if (game) return;
   if (!press) return;
   if (press.dragged) bumpStat('drag');
   clearTimeout(press.holdTimer);
@@ -1525,10 +1518,6 @@ function clearOverlays(keep) {
   if (keep !== 'duoPose') duoPose = null;
   if (keep !== 'family') familyShow = null;
   if (keep !== 'game') game = null;
-  if (keep !== 'doodle' && doodle) {
-    doodle = null;
-    try { if (bridge && bridge.setFullscreen) bridge.setFullscreen(false); } catch (e) {}
-  }
   if (!duoIntro && !duoPose && !familyShow && !game) {
     pet.style.visibility = '';
     pet.style.opacity = '';
@@ -1875,7 +1864,6 @@ function drawDuoPose(now) {
 
 // ---------- 互动托盘（长按腿弹出） ----------
 // ---------- 涂鸦留言 ----------
-let doodle = null;
 
 // 按视口算托盘格子尺寸：桌宠被 setScaleF 缩小时 WebView 视口随之变小，
 // 固定字号会让 4 行放不下、底部被裁
@@ -1911,79 +1899,6 @@ function refreshBattery() {
   bat.at = Date.now();
   applyBatteryLook();
 }
-
-function applyBatteryLook() {
-  const lv = bat.level;
-  const now = bat.charging ? 'charging' : (lv >= 0 && lv <= 15 ? 'low' : 'normal');
-  if (now === batState) return;
-  const prev = batState;
-  batState = now;
-  if (now === 'low') {
-    pet.classList.add('tired');
-    if (prev) spawnBubble(pickOne(LOW_BAT_LINES));
-  } else {
-    pet.classList.remove('tired');
-    if (now === 'charging' && prev) {
-      spawnBubble(lv >= 99 ? pickOne(FULL_LINES) : pickOne(CHARGING_LINES));
-      react('hop', 420);
-    }
-  }
-}
-
-// 通知栏副标题：摸了几次、电量多少、在干嘛
-function refreshNotify() {
-  if (!bridge || !bridge.setNotifyText) return;
-  const parts = [];
-  if (STATS.pat || STATS.feed) parts.push('今天被摸 ' + STATS.pat + ' 次、喂 ' + STATS.feed + ' 次');
-  if (bat.level >= 0) parts.push('电量 ' + bat.level + '%' + (bat.charging ? '（充电中）' : ''));
-  if (WX && WX.code !== undefined && WX.temp !== undefined) parts.push(WX.temp + '°C');
-  try { bridge.setNotifyText(parts.length ? parts.join(' · ') : '点这里可以打开状态页，或点「关闭」退出'); } catch (e) {}
-}
-
-function startDoodle() {
-  clearOverlays('doodle');
-  // 涂鸦要画满整个手机屏幕：先把悬浮窗撑到全屏，退出时再缩回桌宠大小
-  try { if (bridge && bridge.setFullscreen) bridge.setFullscreen(true); } catch (e) {}
-  doodle = { pts: [], t0: performance.now(), dur: 7000 };
-  spawnBubble(pickOne(['画吧，我在看', '给你张纸', '写点什么？']));
-}
-
-function doodleAdd(x, y) {
-  if (!doodle) return;
-  const last = doodle.pts[doodle.pts.length - 1];
-  if (last && Math.hypot(x - last.x, y - last.y) < 2.2) return;
-  doodle.pts.push({ x, y });
-  doodle.last = performance.now();
-  if (doodle.pts.length > 1200) doodle.pts.shift();
-}
-
-function drawDoodle(now) {
-  if (!doodle) return;
-  const t = now - doodle.t0;
-  // 停笔 2.6 秒就结束：不用一直等到 7 秒，免得手指离开后还在抢触摸
-  const idle = doodle.last ? now - doodle.last : 0;
-  if (t > doodle.dur || (doodle.last && idle > 2600)) {
-    if (doodle.pts.length > 8) spawnBubble(pickOne(['画的什么呀', '我看到了', '收下了', '这个我要留着']));
-    doodle = null;
-    try { if (bridge && bridge.setFullscreen) bridge.setFullscreen(false); } catch (e) {}
-    return;
-  }
-  const a = t > doodle.dur - 900 ? Math.max(0, 1 - (t - (doodle.dur - 900)) / 900) : 1;
-  if (doodle.pts.length < 2) return;
-  const ctx2 = fx.getContext('2d');
-  ctx2.save();
-  ctx2.globalAlpha = a;
-  ctx2.strokeStyle = '#3b3630';
-  ctx2.lineWidth = 2.4;
-  ctx2.lineCap = 'round';
-  ctx2.lineJoin = 'round';
-  ctx2.beginPath();
-  ctx2.moveTo(doodle.pts[0].x, doodle.pts[0].y);
-  for (let i = 1; i < doodle.pts.length; i++) ctx2.lineTo(doodle.pts[i].x, doodle.pts[i].y);
-  ctx2.stroke();
-  ctx2.restore();
-}
-
 // ---------- 简笔换装 ----------
 const OUTFITS = ['none', 'straw', 'beanie', 'crown', 'scarf', 'ribbon'];
 const OUTFIT_LINES = { straw: '草帽！', beanie: '暖和吧', crown: '我是王', scarf: '围巾软软的', ribbon: '蝴蝶结好看吗' };
@@ -2039,13 +1954,25 @@ function paintOutfit(ctx2, cx, top, neckY, u, bob, kind) {
     ctx2.fill(); ctx2.stroke();
   } else if (kind === 'scarf') {
     const ny = neckY + bob;
+    // 原来主环只有 21u×6u，双子半身宽约 100u，围巾不到肩宽的一半，
+    // 看着像挂在脖子上的一条线。改成 37u×11u，压住整个肩颈交界。
     ctx2.fillStyle = '#7d9ec4';
     ctx2.beginPath();
-    ctx2.ellipse(cx, ny, 21 * u, 6 * u, 0, 0, Math.PI * 2);
+    ctx2.ellipse(cx, ny, 37 * u, 11 * u, 0, 0, Math.PI * 2);
     ctx2.fill(); ctx2.stroke();
+    // 垂下来的一截：加宽加长，带一点角度，像被塞进衣领里
     ctx2.beginPath();
-    ctx2.ellipse(cx + 10 * u, ny + 13 * u, 5.5 * u, 11 * u, 0.2, 0, Math.PI * 2);
+    ctx2.ellipse(cx + 14 * u, ny + 22 * u, 9.5 * u, 19 * u, 0.16, 0, Math.PI * 2);
     ctx2.fill(); ctx2.stroke();
+    // 两道褶皱：不然就是一块死板的椭圆
+    ctx2.beginPath();
+    ctx2.moveTo(cx - 24 * u, ny + 2.5 * u);
+    ctx2.lineTo(cx - 7 * u, ny + 3.8 * u);
+    ctx2.stroke();
+    ctx2.beginPath();
+    ctx2.moveTo(cx + 6 * u, ny + 3.4 * u);
+    ctx2.lineTo(cx + 22 * u, ny + 1.8 * u);
+    ctx2.stroke();
   } else if (kind === 'ribbon') {
     const ty = top - 2 * u + bob;
     ctx2.fillStyle = '#e88ba6';
@@ -2073,7 +2000,7 @@ function drawOutfit(now) {
   if (r.top < -r.height * 0.5) return;      // 角色被伞降甩到屏幕外时不画
   const ctx2 = fx.getContext('2d');
   const top = r.top + r.height * 0.035;
-  const neckY = r.top + r.height * 0.30;
+  const neckY = r.top + r.height * 0.335;   // 0.30 偏上，围巾会压到下巴
   const duoMode = curChar().id === 'duo';
   // 双子是两个人并排（duo.png = char_a 左 + char_b 右），装束要一人一份，
   // 分别落在 1/4 和 3/4 的中心线上，尺寸也按半宽算，否则会变成两人中间悬空一个帽子。
@@ -2294,7 +2221,6 @@ function doTray(act) {
   else if (act === 'char') { openPicker(); }
   else if (act === 'scale') { toggleMini(); }
   else if (act === 'pat') { patHead(); spawnBubble(pickLine('shy')); }
-  else if (act === 'doodle') { startDoodle(); }
   else if (act === 'edge') { if (bridge && bridge.snapToEdge) bridge.snapToEdge(); }
   else if (act === 'family') { startFamily(); }
   else if (act === 'dress') { nextOutfit(); }
