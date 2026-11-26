@@ -223,7 +223,7 @@ html, body {
 }
 .tray-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 2px;
 }
 .tray-btn {
@@ -231,7 +231,7 @@ html, body {
   flex-direction: column;
   align-items: center;
   gap: 1px;
-  padding: 5px 0 4px;
+  padding: 4px 0 3px;
   border: none;
   background: transparent;
   border-radius: 10px;
@@ -239,5 +239,25 @@ html, body {
   font-family: inherit;
 }
 .tray-btn:active { background: #e5d8bf; }
-.tray-btn b { font-size: 14px; line-height: 1.1; font-weight: 400; }
-.tray-btn i { font-size: 9px; font-style: normal; color: #6a6255; white-space: nowrap; }
+.tray-btn b { font-size: 13px; line-height: 1.1; font-weight: 400; }
+.tray-btn i { font-size: 8px; font-style: normal; color: #6a6255; white-space: nowrap; transform: scale(.94); }
+
+/* ---------- v1.53：作息 / 天气 / 换装 ---------- */
+#pet.night  { filter: brightness(.72) saturate(.9); }
+#pet.yawn   { animation: yawn 1.5s ease-in-out 1; }
+@keyframes yawn {
+  0%   { transform: scale(1, 1); }
+  35%  { transform: scale(.96, 1.06) translateY(-2px); }
+  60%  { transform: scale(1.01, .97); }
+  100% { transform: scale(1, 1); }
+}
+#pet.windy  { animation: windy 2.6s ease-in-out infinite alternate; }
+@keyframes windy {
+  0%   { transform: rotate(-2.4deg) skewX(-1.2deg); }
+  100% { transform: rotate(2.6deg) skewX(1.4deg); }
+}
+#pet.hot    { animation: hot 1.9s ease-in-out infinite; }
+@keyframes hot {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-2px); }
+}
