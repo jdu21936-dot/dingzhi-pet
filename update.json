@@ -1,6 +1,6 @@
 {
- "versionCode": 99,
- "versionName": "1.97",
+ "versionCode": 100,
+ "versionName": "1.98",
  "url": "https://raw.githubusercontent.com/jdu21936-dot/dingzhi-pet/main/dingzhi-pet.apk",
- "note": "接饼干判定放宽到整身、下落变慢、接住有+1反馈；围巾装扮已删"
+ "note": "接饼干：角色横向位置限制在窗口内，手指划出窗口不再消失"
 }
