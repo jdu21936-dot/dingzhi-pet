@@ -1,1 +1,1 @@
-{"versionCode":65,"versionName":"1.63","url":"https://raw.githubusercontent.com/jdu21936-dot/dingzhi-pet/main/dingzhi-pet.apk","note":"托盘图标改成半透明，文字加深放大"}
+{"versionCode":66,"versionName":"1.64","url":"https://raw.githubusercontent.com/jdu21936-dot/dingzhi-pet/main/dingzhi-pet.apk","note":"长按腿弹托盘更灵敏：时长 620ms 降到 320ms，腿的判定区域放宽，手指小抖动不再取消"}
