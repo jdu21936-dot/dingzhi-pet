@@ -193,41 +193,50 @@ html, body {
   50%      { transform: scale(1.035,.962) translateY(1px) }
 }
 
-/* ===== 互动托盘（长按腿弹出） ===== */
+/* ===== 互动托盘（长按角色弹出，贴右侧竖条，可上下滑） ===== */
 #tray {
   position: absolute;
-  inset: 0;
-  pointer-events: none;         /* 只有图标本身可点 */
+  right: 3px;
+  top: 50%;
+  transform: translateY(-50%);
+  max-height: 98%;
+  padding: 3px 2px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  scrollbar-width: none;
+  pointer-events: auto;          /* 整条要能滚，所以它自己得收触摸 */
   z-index: 14;
+  border-radius: 11px;
+  background: rgba(239, 230, 211, 0.20);
   font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
   transition: opacity .16s ease;
 }
+#tray::-webkit-scrollbar { width: 0; height: 0; }
 #tray.hidden { opacity: 0; pointer-events: none; }
-.tray-grid { position: absolute; inset: 0; }
-/* 环形布局：坐标由 fitTray() 按视口算，不用 grid */
+.tray-grid { display: flex; flex-direction: column; align-items: center; gap: 3px; }
 .tray-btn {
-  position: absolute;
-  left: 0; top: 0;
+  position: static;
+  transform: none;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: var(--dot, 34px); height: var(--dot, 34px);
-  /* fitTray() 给的是环上那个点的圆心，不位移回来按钮整体会往右下偏半个身位 */
-  transform: translate(-50%, -50%);
-  padding: 0;
+  flex: 0 0 auto;
+  width: var(--dot, 30px);
+  height: auto;
+  padding: 3px 1px 2px;
   border: 0;
   border-radius: 7px;
-  background: rgba(255, 253, 250, 0.52);   /* 半透明：背后的角色和壁纸能透出来 */
+  background: rgba(255, 253, 250, 0.62);
   color: #141210;
   font-family: inherit;
   pointer-events: auto;
-  transform: translate(-50%, -50%);
-  box-shadow: none;
 }
 .tray-btn svg {
-  width: calc(var(--dot, 34px) * 0.56);
-  height: calc(var(--dot, 34px) * 0.56);
+  width: calc(var(--dot, 30px) * 0.60);
+  height: calc(var(--dot, 30px) * 0.60);
   display: block;
   stroke: currentColor;
   fill: none;
@@ -236,17 +245,16 @@ html, body {
   stroke-linejoin: round;
 }
 .tray-btn i {
-  position: absolute;
-  top: 100%;
+  position: static;
   margin-top: 1px;
   font-style: normal;
-  font-size: 8px;
+  font-size: 6.5px;
   font-weight: 500;
   line-height: 1;
   color: #2b2620;
   white-space: nowrap;
   /* 底下是半透明卡片和角色，文字要压得住 */
-  text-shadow: 0 0 2px #fffdf7, 0 0 2px #fffdf7, 0 0 3px #fffdf7;
+  text-shadow: 0 0 2px #fffdf7, 0 0 2px #fffdf7;
 }
 .tray-btn:active { background: rgba(20, 18, 16, 0.88); color: #fffdfa; }
 .tray-btn:active i { color: #fffdfa; }
