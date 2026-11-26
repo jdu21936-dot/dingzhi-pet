@@ -1223,7 +1223,7 @@ function endPinch() {
 function onDown(e) {
   noteTouch();
   // 双子组合出场动画 / 插腰站姿互动期间忽略触摸，避免把正在播放的动画拖走/打断
-  if (game) { game.x = e.touches[0].clientX; return; }
+  if (game) { game.x = clampGameX(e.touches[0].clientX); return; }
   if (familyShow) { familyShow = null; pet.style.visibility = ''; return; }
   if (duoIntro || duoPose) {
     // 动画可以被手指打断：清掉状态、把角色显回来，然后继续走正常的按/拖逻辑
@@ -1304,7 +1304,7 @@ function onMove(e) {
     updatePinch(e.touches);
     return;
   }
-  if (game) { game.x = e.touches[0].clientX; return; }
+  if (game) { game.x = clampGameX(e.touches[0].clientX); return; }
   if (!press) return;
   const t = e.touches ? e.touches[0] : e;
   if (press.grabFood) {
@@ -2074,6 +2074,15 @@ function drawFamily(now) {
 
 // ---------- 接饼干小游戏 ----------
 let game = null;
+
+// 接饼干时角色的横向位置必须夹在窗口内。手指划出这个 150px 宽的小窗口后
+// clientX 会是负数或几百，不夹的话角色直接被画到画布外，观感就是"一移动就消失"。
+function clampGameX(x) {
+  const vw = fx.clientWidth || window.innerWidth || 150;
+  const pad = Math.max(18, vw * 0.12);
+  if (!(x === x)) return vw / 2;
+  return Math.max(pad, Math.min(vw - pad, x));
+}
 const GAME_TARGET = 10;
 
 function startGame() {
@@ -2081,7 +2090,7 @@ function startGame() {
   clearOverlays('game');
   game = { cookies: [], score: 0, t0: performance.now(), next: 0, x: 0, speed: 46, miss: 0, pop: null };
   const r = pet.getBoundingClientRect();
-  game.x = r.left + r.width / 2;
+  game.x = clampGameX(r.left + r.width / 2);
   pet.style.visibility = 'hidden';
   spawnBubble('接住饼干！');
 }
