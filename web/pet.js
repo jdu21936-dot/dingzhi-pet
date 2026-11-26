@@ -2272,6 +2272,8 @@ function doTray(act) {
   else if (act === 'say') { spawnBubble(randomLine()); }
   else if (act === 'sleep') { startSleepNow(); }
   else if (act === 'char') { openPicker(); }
+  else if (act === 'mic') { toggleMic(); }
+  else if (act === 'mimic') { doMimic(); }
   else if (act === 'scale') { toggleMini(); }
   else if (act === 'pat') { patHead(); spawnBubble(pickLine('shy')); }
   else if (act === 'doodle') { startDoodle(); }
@@ -2329,6 +2331,62 @@ if (trayEl) {
 // ---------- 启动 ----------
 // Java 侧版本更新回调：检查出新版本 / 下载中 / 需要授权 / 失败时冒一条气泡
 // text 是 Java 拼好的完整文案，ev 是事件名（updateFound/updateDownloading/needInstallPerm/updateFailed）
+  // ---------- 麦克风：听见声音 / 学舌 ----------
+  let micOn = false;
+  let lastSoundAt = 0;
+  let soundHits = 0;
+
+  function micBtn() { return trayEl ? trayEl.querySelector('[data-act="mic"]') : null; }
+
+  function toggleMic() {
+    micOn = !micOn;
+    const b = micBtn();
+    if (b) b.classList.toggle('on', micOn);
+    try {
+      if (micOn) { bridge && bridge.startListen && bridge.startListen(); spawnBubble('我在听～'); }
+      else { bridge && bridge.stopListen && bridge.stopListen(); spawnBubble('那我不听啦'); }
+    } catch (e) {}
+  }
+
+  /** Java 每 110ms 推一次音量（0~1） */
+  window.__onSound = function (v) {
+    const lv = Number(v) || 0;
+    if (!micOn || lv < 0.30) { if (lv < 0.12) soundHits = 0; return; }
+    const now = performance.now();
+    if (now - lastSoundAt < 800) return;
+    lastSoundAt = now;
+    soundHits++;
+    // 有动静：先转头看屏幕中央
+    try { lookAt(window.innerWidth / 2, window.innerHeight * 0.5); } catch (e) {}
+    if (soundHits >= 3 && soundHits % 3 === 0) {
+      try { react('hop', 420); } catch (e) {}
+      spawnBubble(pickOne(['吓我一跳！', '好大声…', '谁在说话？', '嗡——']));
+    } else {
+      try { react('wiggle', 380); } catch (e) {}
+    }
+  };
+
+  /** 学舌结果：hz>0 是听清的基频，0 是没听清，<0 是出错 */
+  window.__onMimic = function (hz) {
+    const f = Number(hz) || 0;
+    if (f > 0) {
+      spawnBubble('你刚才哼的是 ' + Math.round(f) + 'Hz？我学一遍…');
+      try { react('wiggle', 700); } catch (e) {}
+    } else if (f === 0) {
+      spawnBubble('没听清…再哼一次？');
+    } else {
+      spawnBubble('录不到声音');
+    }
+  };
+
+  function doMimic() {
+    try {
+      if (!bridge || !bridge.mimic) { spawnBubble('这边没法听声音'); return; }
+      spawnBubble('嗯…你哼一个');
+      bridge.mimic();
+    } catch (e) {}
+  }
+
 window.__onUpdate = function (text, ev) {
   try { spawnBubble(String(text)); } catch (e) {}
 };
