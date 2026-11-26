@@ -271,3 +271,11 @@ html, body {
   0%, 100% { transform: translateY(0); }
   50%      { transform: translateY(-2px); }
 }
+
+/* 缩小状态（格子 < 27px）：标签 5.5px 根本看不清，只留 emoji 并把图标放大 */
+#tray.compact .tray-btn i { display: none; }
+#tray.compact .tray-btn b {
+  font-size: calc(var(--cell, 22px) * 0.62);
+  line-height: 1;
+}
+#tray.compact .tray-head { padding-bottom: 2px; }
