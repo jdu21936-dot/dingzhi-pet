@@ -1472,6 +1472,7 @@ document.addEventListener('touchend', onUp, { passive: true });
 document.addEventListener('touchcancel', onUp, { passive: true });
 
 window.addEventListener('resize', () => {
+  fitTray();
   dpr = Math.min(window.devicePixelRatio || 1, 3);
   resizeFx();
 });
@@ -1826,6 +1827,20 @@ function drawDuoPose(now) {
 // ---------- 涂鸦留言 ----------
 let doodle = null;
 
+// 按视口算托盘格子尺寸：桌宠被 setScaleF 缩小时 WebView 视口随之变小，
+// 固定字号会让 4 行放不下、底部被裁
+function fitTray() {
+  if (!trayEl) return;
+  const vh = window.innerHeight || 210;
+  const rows = 4;
+  const headH = Math.max(9, vh * 0.075);
+  const cell = Math.max(19, Math.min(40, (vh * 0.94 - headH - 10) / rows));
+  trayEl.style.setProperty('--cell', cell.toFixed(1) + 'px');
+  trayEl.style.setProperty('--tray-head', Math.max(6.5, Math.min(9, cell * 0.26)).toFixed(1) + 'px');
+  trayEl.style.setProperty('--tray-emoji', Math.max(8, Math.min(15, cell * 0.42)).toFixed(1) + 'px');
+  trayEl.style.setProperty('--tray-fs', Math.max(5.5, Math.min(9, cell * 0.27)).toFixed(1) + 'px');
+}
+
 function startDoodle() {
   doodle = { pts: [], t0: performance.now(), dur: 7000 };
   spawnBubble(pickOne(['画吧，我在看', '给你张纸', '写点什么？']));
@@ -2111,6 +2126,7 @@ function trayOpen() { return trayEl && !trayEl.classList.contains('hidden'); }
 function openTray() {
   if (!trayEl) return;
   closePicker();
+  fitTray();
   trayEl.classList.remove('hidden');
   if (bridge && bridge.log) { try { bridge.log('打开互动托盘 v5'); } catch (e) {} }
 }
