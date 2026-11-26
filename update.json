@@ -1,1 +1,1 @@
-{"versionCode": 77, "versionName": "1.75", "url": "https://raw.githubusercontent.com/jdu21936-dot/dingzhi-pet/main/dingzhi-pet.apk", "note": "去掉隐身功能；缩小下限回到 0.6 倍；托盘改方形网格"}
+{"versionCode": 78, "versionName": "1.76", "url": "https://raw.githubusercontent.com/jdu21936-dot/dingzhi-pet/main/dingzhi-pet.apk", "note": "检查更新加时间戳，绕开 CDN 缓存；去掉隐身；托盘方形网格"}
