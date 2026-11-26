@@ -204,10 +204,13 @@ function saveStats() {
   try { localStorage.setItem('pet.stats', JSON.stringify(STATS)); } catch (e) {}
 }
 
+let statSaveAt = 0;
 function bumpStat(k) {
   loadStats();
   STATS[k] = (STATS[k] | 0) + 1;
-  saveStats();
+  // 摸一下写一次 localStorage 在连续互动时会拖主线程，600ms 合并一次
+  const __st = Date.now();
+  if (__st - statSaveAt > 600) { statSaveAt = __st; saveStats(); }
   setTimeout(refreshNotify, 1500);   // 别每碰一下就重建通知，主线程会被通知构建占满
 }
 
@@ -664,7 +667,8 @@ function drawExtras(now, dt) {
   }
 }
 
-function drawBubbles(now) {
+function drawFrame(now) {
+  ensurePetVisible();
   const w = fx.clientWidth || window.innerWidth;
   const h = fx.clientHeight || window.innerHeight;
   ctx.clearRect(0, 0, w, h);
@@ -753,7 +757,6 @@ function drawBubbles(now) {
     if (lastFrameAt) drawExtras(__now, Math.min(3, (__now - lastFrameAt) / 16.7));
   }
   lastFrameAt = __now;
-  requestAnimationFrame(drawBubbles);
 }
 
 // ---------- 音效 ----------
@@ -1214,6 +1217,33 @@ function updatePinch(touches) {
   if (Math.abs(s - curScale) < 0.02) return;
   curScale = s;
   bridge.setScaleF(s);
+}
+
+// 帧循环的看门狗。
+// 原来 drawBubbles 自己在结尾排下一帧：只要某一帧抛异常（某个 img 还没加载好、
+// 画布尺寸为 0、某个状态对象被别处清空……），后面就再也不会排帧，
+// 整个画面永久冻结，观感就是「卡住死机」。现在把主体包进 drawFrame，
+// 异常兜住并写日志，无论成败都排下一帧。
+function drawBubbles(now) {
+  try {
+    drawFrame(now);
+  } catch (err) {
+    try {
+      pet.style.visibility = '';
+      pet.style.opacity = '';
+    } catch (e2) {}
+    if (bridge && bridge.log) { try { bridge.log('绘制异常 ' + err); } catch (e3) {} }
+  }
+  requestAnimationFrame(drawBubbles);
+}
+
+// 兜底：没有任何画布独占状态，角色却还藏着 -> 说明某条路径漏了恢复，立刻显回来。
+function ensurePetVisible() {
+  if (duoIntro || duoPose || familyShow || game) return;
+  if (pet.style.visibility === 'hidden') {
+    pet.style.visibility = '';
+    pet.style.opacity = '';
+  }
 }
 
 function endPinch() {
