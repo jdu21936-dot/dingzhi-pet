@@ -280,7 +280,6 @@ async function refreshWeather() {
     applyWeatherLook();
     if (raining && !wasRain) {
       setTimeout(() => spawnBubble(pickLine('rain')), 1600);
-      setTimeout(() => { if (!chute && !duoIntro && !duoPose) startParachute(); }, 2600);
     }
     if (WX.code !== null && SNOW_CODES.indexOf(WX.code) >= 0) {
       setTimeout(() => spawnBubble('下雪了…'), 2200);
@@ -816,11 +815,8 @@ let peekSide = 0;
 const CHUTE_DUR = 4400;
 
 function startParachute() {
-  if (chute) return;                    // 画布上画伞，不需要 bridge
-  pet.classList.remove('hop', 'wiggle', 'shy');
-  chute = { t0: performance.now(), dur: CHUTE_DUR, done: 0 };
-  spawnBubble('跳伞～');
-  playSound('head');
+  // 跳伞已取消。它靠 transform 把角色往上推出窗口，而窗口头距只有 38px，
+  // 无论幅度调多小都难免切到头（试过 62%、16%、4.5%）。函数留空壳防别处引用报错。
 }
 
 function drawChute(now) {
@@ -2274,7 +2270,6 @@ function doTray(act) {
   if (bridge && bridge.log) { try { bridge.log('托盘点击 -> ' + act); } catch (e) {} }
   if (act === 'feed') { addFood(); setTimeout(function () { spawnBubble('给我的吗？'); }, 240); }
   else if (act === 'say') { spawnBubble(randomLine()); }
-  else if (act === 'chute') { startParachute(); }
   else if (act === 'sleep') { startSleepNow(); }
   else if (act === 'char') { openPicker(); }
   else if (act === 'scale') { toggleMini(); }
