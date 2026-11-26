@@ -1,1 +1,1 @@
-{"versionCode": 86, "versionName": "1.84", "url": "https://raw.githubusercontent.com/jdu21936-dot/dingzhi-pet/main/dingzhi-pet.apk", "note": "托盘改 3 列 4 行，12 项一屏放完不用滑"}
+{"versionCode": 87, "versionName": "1.85", "url": "https://raw.githubusercontent.com/jdu21936-dot/dingzhi-pet/main/dingzhi-pet.apk", "note": "setFullscreen 移进 Bridge 内部类，涂鸦终于能铺满全屏"}
