@@ -1281,8 +1281,7 @@ function onUp(e) {
     } else {
       // 双子：点击身体 → 摆插腰站姿定格秀（画布绘制，替换默认 hop）
       const ch = curChar();
-      if (ch && ch.id === 'duo' && !duoIntro) {
-        startDuoPose();
+      if (ch && ch.id === 'duo' && !duoIntro && startDuoPose()) {
         spawnBubble(randomLine());
       } else {
         react('hop', 470);
@@ -1521,6 +1520,10 @@ function refreshDuoDisplay() {
   else if (ch.src) pet.src = ch.src;
   pet.classList.add('duo');
   pet.style.visibility = '';
+  pet.style.opacity = '';
+  // 预热插腰站姿素材：首次点击时立刻可画，避免角色先消失再出现
+  duoImg('char_a.png');
+  duoImg('char_b.png');
   startAnim();       // 单张立绘 → breathe 呼吸
 }
 
@@ -1531,13 +1534,17 @@ function refreshDuoDisplay() {
 
 function startDuoPose() {
   const ch = curChar();
-  if (!ch || ch.id !== 'duo') return;
-  if (duoIntro) return;                          // 入场动画播放中不叠加
-  if (duoPose) return;                           // 播放中不重入
-  duoPose = { t0: performance.now() };
+  if (!ch || ch.id !== 'duo') return false;
+  if (duoIntro) return false;                    // 入场动画播放中不叠加
+  if (duoPose) return false;                     // 播放中不重入
+  const pa = duoImg('char_a.png');
+  const pb = duoImg('char_b.png');
+  // 素材没就绪就只预热、不进入：否则会先隐藏 pet 再空等一张图，看着像角色凭空消失
+  if (!(pa.complete && pa.naturalWidth) || !(pb.complete && pb.naturalWidth)) return false;
+  duoPose = { t0: performance.now(), shown: false };
   duoFx = null;                                  // 定格期间暂停随机小动作
-  pet.style.visibility = 'hidden';               // 画布独占画面
   playSound('body');
+  return true;
 }
 
 function drawDuoPose(now) {
@@ -1546,6 +1553,7 @@ function drawDuoPose(now) {
   if (!curChar() || curChar().id !== 'duo') {
     duoPose = null;
     pet.style.visibility = '';
+    pet.style.opacity = '';
     return;
   }
   const pose = duoPose;
@@ -1560,9 +1568,24 @@ function drawDuoPose(now) {
   const okB = pb.complete && pb.naturalWidth;
   if (!okA && !okB) return;                       // 素材未就绪先空转
 
+  // 只有确认能画出来才把 pet 藏掉，杜绝「角色先消失、画布还是空」的观感
+  if (!pose.shown) {
+    pet.style.visibility = 'hidden';
+    pose.shown = true;
+  }
+
   ctx.save();
   ctx.clearRect(0, 0, w, h);
-  ctx.globalAlpha = 1;
+
+  // 结尾与 pet 交叉淡出：画布整体降 alpha，不再刷白场
+  const fadeStart = dur - 0.30;
+  const fadeA = t > fadeStart ? Math.max(0, 1 - (t - fadeStart) / (dur - fadeStart)) : 1;
+  ctx.globalAlpha = fadeA;
+  if (fadeA < 1) {
+    // 同步让 pet 淡入，避免中间出现空白帧
+    pet.style.visibility = '';
+    pet.style.opacity = String(Math.min(1, 1 - fadeA));
+  }
 
   // 两人并排：高度对齐到画布 62%，黑发在左、粉毛在右（同 duo 合成图构图）
   const overH = 0.62;
@@ -1637,13 +1660,6 @@ function drawDuoPose(now) {
     ctx.fill();
   }
 
-  // 结尾淡出
-  const fadeStart = dur - 0.28;
-  if (t > fadeStart) {
-    ctx.globalAlpha = Math.max(0, 1 - (t - fadeStart) / (dur - fadeStart));
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, w, h);
-  }
   ctx.restore();
 
   if (t >= dur) {
