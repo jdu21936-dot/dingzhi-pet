@@ -1227,7 +1227,14 @@ function onDown(e) {
   if (doodle) { doodleAdd(e.touches[0].clientX, e.touches[0].clientY); return; }
   if (game) { game.x = e.touches[0].clientX; return; }
   if (familyShow) { familyShow = null; pet.style.visibility = ''; return; }
-  if (duoIntro || duoPose) return;
+  if (duoIntro || duoPose) {
+    // 动画可以被手指打断：清掉状态、把角色显回来，然后继续走正常的按/拖逻辑
+    duoIntro = null;
+    duoPose = null;
+    pet.style.visibility = '';
+    pet.style.opacity = '';
+    pet.classList.add('duo');
+  }
   if (e.touches && e.touches.length >= 3) {
     openPicker();
     return;
@@ -1240,7 +1247,7 @@ function onDown(e) {
   // 否则 touchend 时托盘已 pointer-events:none，click 永远不触发（表现为「按钮点了没反应」）
   if (e.target && e.target.closest && e.target.closest('#tray')) return;
   if (ghostOn) { toggleGhost(); return; }        // 藏起来状态下点一下恢复
-  if (trayOpen()) { closeTray(); return; }       // 托盘打开时点角色先收起
+  if (trayOpen()) closeTray();   // 托盘打开时点角色先收起，但继续走后面的拖动逻辑（之前 return 掉了，拖不动）
   if (chute) return;
   // 抓饼干：手指落在饼干上就拎起来，拖到嘴边会吃掉
   const tGrab = e.touches ? e.touches[0] : e;
