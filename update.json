@@ -1,1 +1,1 @@
-{"versionCode":53,"versionName":"1.51","url":"https://raw.githubusercontent.com/jdu21936-dot/dingzhi-pet/main/dingzhi-pet.apk","note":"修复互动托盘按钮点了没反应（触摸事件冒泡把托盘提前收起）、托盘宽度超出屏幕"}
+{"versionCode":54,"versionName":"1.52","url":"https://raw.githubusercontent.com/jdu21936-dot/dingzhi-pet/main/dingzhi-pet.apk","note":"修复装新包后仍加载旧前端（升级时清空 web 热更目录）+ 托盘按钮改用 touchend 触发"}
