@@ -1247,7 +1247,12 @@ function onDown(e) {
   // 否则 touchend 时托盘已 pointer-events:none，click 永远不触发（表现为「按钮点了没反应」）
   if (e.target && e.target.closest && e.target.closest('#tray')) return;
   if (ghostOn) { toggleGhost(); return; }        // 藏起来状态下点一下恢复
-  if (trayOpen()) closeTray();   // 托盘打开时点角色先收起，但继续走后面的拖动逻辑（之前 return 掉了，拖不动）
+  // 托盘打开时不要一碰就收：环形菜单正好压在角色身上，手指抖一下就没影子了。
+  // 记下打开时刻，400ms 内的触摸都当作「还在看菜单」，只有明确点空白处才收起。
+  if (trayOpen()) {
+    if (Date.now() - trayOpenedAt < 400) return;
+    closeTray();
+  }
   if (chute) return;
   // 抓饼干：手指落在饼干上就拎起来，拖到嘴边会吃掉
   const tGrab = e.touches ? e.touches[0] : e;
@@ -2240,8 +2245,11 @@ let ghostOn = false;
 let scaleBeforeGhost = 1.0;
 
 function trayOpen() { return trayEl && !trayEl.classList.contains('hidden'); }
+let trayOpenedAt = 0;
+
 function openTray() {
   if (!trayEl) return;
+  trayOpenedAt = Date.now();
   closePicker();
   fitTray();
   trayEl.classList.remove('hidden');
