@@ -1868,8 +1868,8 @@ function fitTray() {
   const vw = window.innerWidth || 150;
   const vh = window.innerHeight || 210;
   // 右侧竖条：格子宽度跟着视口走，高度靠滚动解决，不再算坐标
-  // 3 列 × 4 行，12 项一屏放完；格子按视口宽算，上限 28 免得 4 行超 210px
-  const cell = Math.max(22, Math.min(28, Math.round(vw * 0.17)));
+  // 单列竖排：12 项排成一列，靠容器滚动看下面的
+  const cell = Math.max(24, Math.min(32, Math.round(vw * 0.21)));
   trayEl.style.setProperty('--dot', cell + 'px');
   trayEl.scrollTop = 0;
 }
@@ -2290,10 +2290,30 @@ if (trayEl) {
   let trayBusy = 0;
   let trayDownAt = null;
   // 手指按下的位置：用来区分「点击」和「滑托盘」
+  let trayScrollTop0 = 0;
+  let trayScrolling = false;
   trayEl.addEventListener('touchstart', function (e) {
     const t = e.touches && e.touches[0];
     trayDownAt = t ? { x: t.clientX, y: t.clientY } : null;
+    trayScrollTop0 = trayEl.scrollTop;
+    trayScrolling = false;
   }, { passive: true });
+  // WebView 里 overflow-y 的原生惯性滚动经常不响应（尤其缩小过窗口），
+  // 这里在 touchmove 里自己推 scrollTop，保证一列 12 项能滑到底。
+  trayEl.addEventListener('touchmove', function (e) {
+    if (!trayDownAt) return;
+    const t = e.touches && e.touches[0];
+    if (!t) return;
+    const dx = t.clientX - trayDownAt.x;
+    const dy = t.clientY - trayDownAt.y;
+    if (!trayScrolling && Math.abs(dy) > 8 && Math.abs(dy) > Math.abs(dx)) {
+      trayScrolling = true;
+    }
+    if (trayScrolling) {
+      trayEl.scrollTop = trayScrollTop0 - dy;
+      try { e.preventDefault(); } catch (err) {}
+    }
+  }, { passive: false });
   function trayMoved(e) {
     if (!trayDownAt) return false;
     const t = (e.changedTouches && e.changedTouches[0]) || null;
