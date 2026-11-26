@@ -2241,7 +2241,6 @@ function openTray() {
   closePicker();
   fitTray();
   trayEl.classList.remove('hidden');
-  trayEl.classList.remove('page2');
   if (bridge && bridge.log) { try { bridge.log('打开互动托盘 v5'); } catch (e) {} }
 }
 function closeTray() {
