@@ -6,6 +6,8 @@ html, body {
   overflow: hidden;
   background: transparent;
   -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;   /* 长按图片会弹系统的「保存图片」，抢占触摸导致托盘弹不出 */
+  -webkit-user-drag: none;
   -webkit-user-select: none;
   user-select: none;
   touch-action: none;
@@ -271,4 +273,12 @@ html, body {
   50%      { transform: translateY(-2px); }
 }
 
-
+/* 电量低于 15% 时蔫下来：灰一点、往下坠一点，配合台词 */
+#pet.tired {
+  animation: tiredSway 3.2s ease-in-out infinite;
+  filter: saturate(0.72) brightness(0.94);
+}
+@keyframes tiredSway {
+  0%, 100% { transform: translateY(1.5px) rotate(-1.2deg); }
+  50%      { transform: translateY(3px)   rotate(1.2deg); }
+}
