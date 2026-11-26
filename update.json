@@ -1,1 +1,1 @@
-{"versionCode":74,"versionName":"1.72","url":"https://raw.githubusercontent.com/jdu21936-dot/dingzhi-pet/main/dingzhi-pet.apk","note":"伞降和涂鸦不再挡住拖动，拖动加了诊断日志"}
+{"versionCode": 76, "versionName": "1.74", "url": "https://raw.githubusercontent.com/jdu21936-dot/dingzhi-pet/main/dingzhi-pet.apk", "note": "托盘改回方形网格（图标不变）；修复互动后卡死、点不动"}
