@@ -215,7 +215,8 @@ html, body {
 }
 #tray::-webkit-scrollbar { width: 0; height: 0; }
 #tray.hidden { opacity: 0; pointer-events: none; }
-.tray-grid { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+/* 3 列 × 4 行：12 个按钮一屏放完，不用滑 */
+.tray-grid { display: grid; grid-template-columns: repeat(3, auto); gap: 3px; justify-items: center; }
 .tray-btn {
   position: static;
   transform: none;
