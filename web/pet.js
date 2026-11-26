@@ -1197,7 +1197,6 @@ function touchDist(t) {
 function beginPinch(touches) {
   if (press) {
     clearTimeout(press.holdTimer);
-    clearTimeout(press.chuteTimer);
   }
   press = null;
   dragged = false;
@@ -1366,7 +1365,6 @@ function onUp(e) {
   if (!press) return;
   if (press.dragged) bumpStat('drag');
   clearTimeout(press.holdTimer);
-  clearTimeout(press.chuteTimer);
   clearTimeout(press.enjoyTimer);
   stopEnjoy();
 
@@ -1518,6 +1516,24 @@ window.addEventListener('resize', () => {
 let duoIntro = null;              // {phase, t0, pa, pb, duo}
 let duoIntroLoaded = {};          // 按 src 缓存已加载 Image，避免反复建图
 let duoPose = null;               // {t0} 双子插腰站姿定格互动（点击触发）
+
+// 画布独占型互动（双子入场 / 插腰 / 全家福 / 接饼干 / 涂鸦）必须互斥：
+// 同开两个会一个抢触摸、一个抢绘制，还会互相把 <img> 藏起来放不回去。
+// keep 指出「即将启动的那个」，其余全部收掉。
+function clearOverlays(keep) {
+  if (keep !== 'duoIntro') duoIntro = null;
+  if (keep !== 'duoPose') duoPose = null;
+  if (keep !== 'family') familyShow = null;
+  if (keep !== 'game') game = null;
+  if (keep !== 'doodle' && doodle) {
+    doodle = null;
+    try { if (bridge && bridge.setFullscreen) bridge.setFullscreen(false); } catch (e) {}
+  }
+  if (!duoIntro && !duoPose && !familyShow && !game) {
+    pet.style.visibility = '';
+    pet.style.opacity = '';
+  }
+}
 
 function duoImg(src) {
   if (duoIntroLoaded[src]) return duoIntroLoaded[src];
@@ -1727,6 +1743,7 @@ function startDuoPose() {
   const pb = duoImg('char_b.png');
   // 素材没就绪就只预热、不进入：否则会先隐藏 pet 再空等一张图，看着像角色凭空消失
   if (!(pa.complete && pa.naturalWidth) || !(pb.complete && pb.naturalWidth)) return false;
+  clearOverlays('duoPose');
   duoPose = { t0: performance.now(), shown: false };
   duoFx = null;                                  // 定格期间暂停随机小动作
   playSound('body');
@@ -1924,6 +1941,7 @@ function refreshNotify() {
 }
 
 function startDoodle() {
+  clearOverlays('doodle');
   // 涂鸦要画满整个手机屏幕：先把悬浮窗撑到全屏，退出时再缩回桌宠大小
   try { if (bridge && bridge.setFullscreen) bridge.setFullscreen(true); } catch (e) {}
   doodle = { pts: [], t0: performance.now(), dur: 7000 };
@@ -2073,6 +2091,7 @@ const FAMILY_DUR = 7200;
 
 function startFamily() {
   if (familyShow) { familyShow = null; pet.style.visibility = ''; return; }
+  clearOverlays('family');
   familyShow = { t0: performance.now() };
   pet.style.visibility = 'hidden';
   duoImg('char_a.png');
@@ -2151,6 +2170,7 @@ const GAME_TARGET = 10;
 
 function startGame() {
   if (game) { endGame(false); return; }     // 再点一次就退出，避免卡在隐藏状态
+  clearOverlays('game');
   game = { cookies: [], score: 0, t0: performance.now(), next: 0, x: 0, speed: 62, miss: 0 };
   const r = pet.getBoundingClientRect();
   game.x = r.left + r.width / 2;
