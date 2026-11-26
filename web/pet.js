@@ -2061,11 +2061,11 @@ function drawFamily(now) {
   if (pb && pb.complete && pb.naturalWidth) trio.push(pb);
   if (!trio.length) return;
 
-  // 三个角色并排，总宽不能超过屏幕（原来按 bw*1.9 算，直接是屏宽的 1.9 倍，两边全被裁）
-  const totalW = Math.min(bw * 1.9, w * 0.94);
-  const gap = totalW * 0.022;
+  // 全屏：总宽吃满整个视口，整体垂直居中（原来按角色自身的 bw 算，只占中间一小块）
+  const totalW = w * 0.96;
+  const gap = totalW * 0.02;
   const eachW = (totalW - gap * (trio.length - 1)) / trio.length;
-  let x = w / 2 - totalW / 2;
+  let x = (w - totalW) / 2;
   const fadeIn = Math.min(1, t / 0.35);
   const fadeOut = t > FAMILY_DUR / 1000 - 0.5 ? Math.max(0, (FAMILY_DUR / 1000 - t) / 0.5) : 1;
   ctx2.save();
@@ -2078,7 +2078,8 @@ function drawFamily(now) {
     const ph = i * 1.15;
     const bob = Math.sin(now / 480 + ph) * Math.max(1.5, boxH * 0.007);
     const dx = x + i * (eachW + gap);
-    const dy = boxTop + boxH - dh + bob;
+    // 垂直居中，底部留出提示文字的位置
+    const dy = (h - dh) / 2 - h * 0.04 + bob;
     ctx2.drawImage(im, dx, dy, dw, dh);
     // 侧头看邻居：每 1.8s 换一次朝向
     const look = Math.sin(now / 900 + ph) > 0.55 ? (i === 0 ? -1 : 1) : 0;
@@ -2092,6 +2093,12 @@ function drawFamily(now) {
       ctx2.globalAlpha = Math.min(fadeIn, fadeOut);
     }
   }
+  ctx2.globalAlpha = Math.min(fadeIn, fadeOut) * 0.8;
+  ctx2.fillStyle = '#3a342e';
+  ctx2.font = '9px "Microsoft YaHei", sans-serif';
+  ctx2.textAlign = 'center';
+  ctx2.fillText('点一下关掉', w / 2, h - 14);
+  ctx2.textAlign = 'left';
   ctx2.restore();
 }
 
