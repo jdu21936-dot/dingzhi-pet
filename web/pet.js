@@ -2079,7 +2079,7 @@ const GAME_TARGET = 10;
 function startGame() {
   if (game) { endGame(false); return; }     // 再点一次就退出，避免卡在隐藏状态
   clearOverlays('game');
-  game = { cookies: [], score: 0, t0: performance.now(), next: 0, x: 0, speed: 62, miss: 0 };
+  game = { cookies: [], score: 0, t0: performance.now(), next: 0, x: 0, speed: 46, miss: 0, pop: null };
   const r = pet.getBoundingClientRect();
   game.x = r.left + r.width / 2;
   pet.style.visibility = 'hidden';
@@ -2093,19 +2093,25 @@ function tickGame(now, dt) {
   const h = fx.clientHeight || window.innerHeight;
   if (now - g.t0 > 45000) { endGame(false); return; }   // 45s 兜底，不能让 pet 一直不可见
   if (now - g.t0 > g.next) {
-    g.next = now - g.t0 + Math.max(420, 780 - g.score * 34);
+    g.next = now - g.t0 + Math.max(380, 900 - g.score * 40);
     g.cookies.push({ x: 30 + Math.random() * Math.max(20, w - 60), y: -12, vy: g.speed + g.score * 7, spin: Math.random() * 6 });
   }
   const r = pet.getBoundingClientRect();
-  const groundY = r.top + r.height * 0.86;
-  const reach = Math.max(26, (r.width || w * 0.5) * 0.42);
+  // 判定区改成「整个人」：原来只有 groundY..groundY+26 这么一条 26px 的窄带，
+  // 饼干按 62px/s 下落时一帧移动 1px 还好，但 score 高了 vy 到 130 就会滑过去；
+  // 更要紧的是横向用元素宽（object-fit:contain 的 img，左右各有透明边）算，看着
+  // 明明对准了却判不中。现在纵向吃掉从头顶到脚底，横向按画面里角色的真实半宽。
+  const bodyTop = r.top + r.height * 0.18;
+  const bodyBot = r.top + r.height * 0.96;
+  const halfW = Math.max(30, r.width * 0.40);
   for (let i = g.cookies.length - 1; i >= 0; i--) {
     const c = g.cookies[i];
     c.y += c.vy * dt;
     c.spin += dt * 3.2;
-    if (c.y >= groundY && c.y <= groundY + 26 && Math.abs(c.x - g.x) < reach) {
+    if (c.y >= bodyTop && c.y <= bodyBot && Math.abs(c.x - g.x) < halfW) {
       g.cookies.splice(i, 1);
       g.score++;
+      g.pop = { t: now, x: c.x, y: c.y };
       bumpStat('play');
       if (g.score >= GAME_TARGET) { endGame(true); return; }
       continue;
@@ -2140,6 +2146,18 @@ function drawGame(now) {
     ctx2.beginPath(); ctx2.arc(2.8, 1.6, 1.5, 0, Math.PI * 2); ctx2.fill();
     ctx2.beginPath(); ctx2.arc(0.6, 3.4, 1.2, 0, Math.PI * 2); ctx2.fill();
     ctx2.restore();
+  }
+  if (g.pop) {
+    const pt = (now - g.pop.t) / 620;
+    if (pt >= 1) { g.pop = null; }
+    else {
+      ctx2.save();
+      ctx2.globalAlpha = 1 - pt;
+      ctx2.fillStyle = '#e0703a';
+      ctx2.font = '700 13px "Microsoft YaHei", "PingFang SC", sans-serif';
+      ctx2.fillText('+1', g.pop.x - 7, g.pop.y - 8 - pt * 16);
+      ctx2.restore();
+    }
   }
   ctx2.fillStyle = 'rgba(58,52,46,.85)';
   ctx2.font = '600 12px "Microsoft YaHei", "PingFang SC", sans-serif';
