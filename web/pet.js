@@ -1868,7 +1868,7 @@ function fitTray() {
   const vw = window.innerWidth || 150;
   const vh = window.innerHeight || 210;
   // 右侧竖条：格子宽度跟着视口走，高度靠滚动解决，不再算坐标
-  const cell = Math.max(22, Math.min(34, Math.round(vw * 0.20)));
+  const cell = Math.max(24, Math.min(30, Math.round(vw * 0.18)));
   trayEl.style.setProperty('--dot', cell + 'px');
   trayEl.scrollTop = 0;
 }
