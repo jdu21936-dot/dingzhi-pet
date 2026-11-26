@@ -1896,8 +1896,10 @@ function nextOutfit() {
 
 function drawOutfit(now) {
   if (outfit === 'none') return;
+  if (duoIntro || duoPose || familyShow || game) return;
   const r = pet.getBoundingClientRect();
   if (r.width < 10) return;
+  if (r.top < -r.height * 0.5) return;      // 角色被伞降甩到屏幕外时不画
   const cx = r.left + r.width / 2;
   const top = r.top + r.height * 0.035;
   const u = r.width / 100;                 // 以角色宽度为单位的比例尺
@@ -1972,7 +1974,7 @@ let familyShow = null;
 const FAMILY_DUR = 7200;
 
 function startFamily() {
-  if (familyShow) return;
+  if (familyShow) { familyShow = null; pet.style.visibility = ''; return; }
   familyShow = { t0: performance.now() };
   pet.style.visibility = 'hidden';
   duoImg('char_a.png');
@@ -2041,7 +2043,7 @@ let game = null;
 const GAME_TARGET = 10;
 
 function startGame() {
-  if (game) return;
+  if (game) { endGame(false); return; }     // 再点一次就退出，避免卡在隐藏状态
   game = { cookies: [], score: 0, t0: performance.now(), next: 0, x: 0, speed: 62, miss: 0 };
   const r = pet.getBoundingClientRect();
   game.x = r.left + r.width / 2;
@@ -2054,6 +2056,7 @@ function tickGame(now, dt) {
   if (!g) return;
   const w = fx.clientWidth || window.innerWidth;
   const h = fx.clientHeight || window.innerHeight;
+  if (now - g.t0 > 45000) { endGame(false); return; }   // 45s 兜底，不能让 pet 一直不可见
   if (now - g.t0 > g.next) {
     g.next = now - g.t0 + Math.max(420, 780 - g.score * 34);
     g.cookies.push({ x: 30 + Math.random() * Math.max(20, w - 60), y: -12, vy: g.speed + g.score * 7, spin: Math.random() * 6 });
