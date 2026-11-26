@@ -454,6 +454,27 @@ function drawExtras(now, dt) {
     const age = now - o.t0;
 
     if (o.kind === 'food') {
+      if (o.grabbed) {
+        // 被拎在手里：不落、不淡出，跟手走
+        ctx.save();
+        ctx.translate(o.x, o.y);
+        ctx.scale(1.08, 1.08);
+        ctx.fillStyle = '#d29a55';
+        ctx.strokeStyle = '#8a5a2b';
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.arc(0, 0, 11, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = '#6b3f1d';
+        [[-3.6, -2.4], [3.2, -1.2], [0.4, 3.4], [-1.8, 1.8], [4.2, 3.0]].forEach(function (c) {
+          ctx.beginPath();
+          ctx.arc(c[0], c[1], 1.5, 0, Math.PI * 2);
+          ctx.fill();
+        });
+        ctx.restore();
+        continue;
+      }
       if (!o.landAt) {
         o.vy += 0.55 * dt;
         o.y += o.vy * dt;
@@ -840,8 +861,10 @@ function drawPeek(now) {
 }
 
 // ---------- 交互 ----------
+const ANIM_CLASSES = ['hop', 'wiggle', 'shy', 'spin', 'turns', 'enjoy', 'chew'];
+
 function react(cls, ms) {
-  pet.classList.remove('hop', 'wiggle', 'shy', 'spin');
+  ANIM_CLASSES.forEach(function (c) { if (c !== cls) pet.classList.remove(c); });
   void pet.offsetWidth;
   pet.classList.add(cls);
   setTimeout(() => pet.classList.remove(cls), ms);
@@ -849,15 +872,90 @@ function react(cls, ms) {
 
 
 // ---------- 新增互动：双击跳 / 五连点转圈 / 空闲打哈欠-睡着 ----------
+// ---------- 新增互动（v1.48）----------
+// 戳肚子 / 拖着挣扎 / 眼神跟随 / 发呆打盹 / 喂到嘴边 / 双击转圈 / 摸头享受
+const BELLY_LINES = ['哈哈哈…痒！', '别戳肚子啦', '嘿嘿…好痒', '再戳就生气咯', '唔…！'];
+const CHEW_LINES = ['唔…好吃！', '啊呜～', '谢谢！', '还要～'];
+let lastBellyAt = 0;
+let lookUntil = 0;
+let dazed = false;
+let enjoying = false;
+
+function pickOne(arr) {
+  return arr[Math.floor(Math.random() * arr.length)] || '';
+}
+
+// 眼神跟随：用独立的 translate 属性，不抢 transform（动画还在用 transform）
+function lookAt(clientX, clientY) {
+  const r = pet.getBoundingClientRect();
+  if (!r.width) return;
+  const cx = r.left + r.width / 2;
+  const cy = r.top + r.height * 0.20;
+  let dx = (clientX - cx) / (r.width * 0.55);
+  let dy = (clientY - cy) / (r.height * 0.55);
+  if (dx > 1.5) dx = 1.5; else if (dx < -1.5) dx = -1.5;
+  if (dy > 1.2) dy = 1.2; else if (dy < -1.2) dy = -1.2;
+  const shift = r.width * 0.032;
+  pet.style.translate = (dx * shift).toFixed(1) + 'px ' + (dy * shift * 0.45).toFixed(1) + 'px';
+  lookUntil = Date.now() + 1100;
+}
+
+setInterval(function () {
+  if (Date.now() > lookUntil && pet.style.translate) pet.style.translate = '';
+}, 280);
+
+function startEnjoy() {
+  if (enjoying) return;
+  enjoying = true;
+  react('enjoy', 1900);
+  spawnBubble('唔…好舒服');
+  playSound('head');
+}
+
+function stopEnjoy() {
+  if (!enjoying) return;
+  enjoying = false;
+  pet.classList.remove('enjoy');
+}
+
+// 找触点下的饼干
+function foodAt(cx, cy) {
+  for (let i = PROPS.length - 1; i >= 0; i--) {
+    const o = PROPS[i];
+    if (o.kind !== 'food' || o.eaten) continue;
+    if (Math.hypot(o.x - cx, o.y - cy) < 26) return o;
+  }
+  return null;
+}
+
+function eatFood(o) {
+  o.eaten = true;
+  const i = PROPS.indexOf(o);
+  if (i >= 0) PROPS.splice(i, 1);
+  reactiveChew();
+}
+
+function reactiveChew() {
+  react('chew', 1250);
+  spawnBubble(pickOne(CHEW_LINES));
+  setMood('happy', 60000);
+  playSound('body');
+}
+
 let lastTouchAt = Date.now();
 let tapTimes = [];
 let asleep = false;
 
 function noteTouch() {
   lastTouchAt = Date.now();
+  if (dazed) {
+    dazed = false;
+    pet.classList.remove('daze');
+  }
   if (asleep) {
     asleep = false;
     pet.classList.remove('sleep');
+    react('hop', 400);
     spawnBubble('唔…醒了');
   }
 }
@@ -866,11 +964,17 @@ function startIdleWatch() {
   setInterval(() => {
     if (peekSide) return;                    // 趴着的时候不发作
     const idle = Date.now() - lastTouchAt;
-    if (idle > 60000 && !asleep) {
+    if (idle > 150000 && !asleep) {
       asleep = true;
+      dazed = false;
+      pet.classList.remove('daze');
       pet.classList.add('sleep');
-      spawnBubble('z');
-    } else if (idle > 25000 && idle < 60000 && !asleep && Math.random() < 0.08) {
+      spawnBubble('z…');
+    } else if (idle > 45000 && idle < 150000 && !asleep && !dazed) {
+      dazed = true;
+      pet.classList.add('daze');
+      if (Math.random() < 0.6) spawnBubble('好无聊…');
+    } else if (idle > 20000 && idle < 45000 && !asleep && !dazed && Math.random() < 0.06) {
       react('shy', 620);
       spawnBubble('困…');
     }
@@ -966,6 +1070,19 @@ function onDown(e) {
     return;
   }
   if (chute) return;
+  // 抓饼干：手指落在饼干上就拎起来，拖到嘴边会吃掉
+  const tGrab = e.touches ? e.touches[0] : e;
+  const grabbed = foodAt(tGrab.clientX, tGrab.clientY);
+  if (grabbed) {
+    press = {
+      x: tGrab.clientX, y: tGrab.clientY, t0: Date.now(),
+      lastX: tGrab.clientX, lastY: tGrab.clientY, lastSX: 0, lastSY: 0,
+      distX: 0, distY: 0, grabFood: grabbed
+    };
+    grabbed.grabbed = true;
+    pet.classList.add('dangle');
+    return;
+  }
   // 抓她 = 把她从屏幕边上叫回来
   if (bridge && bridge.unstickEdge) {
     try { bridge.unstickEdge(); } catch (err) {}
@@ -986,15 +1103,19 @@ function onDown(e) {
     distX: 0, distY: 0
   };
   dragged = false;
+  lookAt(t.clientX, t.clientY);
   if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
   // 长按 = 喂食（换档改成双击，见 onUp）
   const r0 = pet.getBoundingClientRect();
   const fy0 = (t.clientY - r0.top) / Math.max(1, r0.height);
   if (fy0 < 0.42) {
-    // 头顶长按 = 张开小伞慢慢飘下来
+    // 头顶按住 0.7s = 眯眼享受；一直按住到 2.4s 才开伞
+    press.enjoyTimer = setTimeout(() => {
+      if (!dragged) startEnjoy();
+    }, 700);
     press.chuteTimer = setTimeout(() => {
-      if (!dragged) startParachute();
-    }, 650);
+      if (!dragged && enjoying) { stopEnjoy(); startParachute(); }
+    }, 2400);
   } else if (fy0 > 0.78) {
     // 腿长按 = 换角色
     press.charTimer = setTimeout(() => {
@@ -1015,12 +1136,23 @@ function onMove(e) {
   }
   if (!press) return;
   const t = e.touches ? e.touches[0] : e;
+  if (press.grabFood) {
+    press.grabFood.x = t.clientX;
+    press.grabFood.y = t.clientY;
+    lookAt(t.clientX, t.clientY);
+    return;
+  }
+  lookAt(t.clientX, t.clientY);
   const dx = t.clientX - press.lastX;
   const dy = t.clientY - press.lastY;
   if (!dragged && Math.hypot(t.clientX - press.x, t.clientY - press.y) > 8) {
     dragged = true;
     clearTimeout(press.feedTimer);
-  clearTimeout(press.charTimer);
+    clearTimeout(press.charTimer);
+    clearTimeout(press.enjoyTimer);
+    stopEnjoy();
+    pet.classList.add('dangle');
+    if (Math.random() < 0.7) spawnBubble('放我下来～');
   }
   if (dragged && bridge) {
     const sx = (t.screenX !== undefined ? t.screenX : t.clientX);
@@ -1050,11 +1182,34 @@ function onUp(e) {
   clearTimeout(press.feedTimer);
   clearTimeout(press.charTimer);
   clearTimeout(press.chuteTimer);
+  clearTimeout(press.enjoyTimer);
+  stopEnjoy();
 
   const t = e.changedTouches ? e.changedTouches[0] : e;
   const r = pet.getBoundingClientRect();
   const fy = (t.clientY - r.top) / Math.max(1, r.height);
   const held = Date.now() - press.t0;
+
+  // 0. 松手时手里有饼干：到嘴边就吃掉，否则掉回脚下
+  if (press.grabFood) {
+    const o = press.grabFood;
+    o.grabbed = false;
+    const mouthX = r.left + r.width / 2;
+    const mouthY = r.top + r.height * 0.22;
+    if (Math.hypot(o.x - mouthX, o.y - mouthY) < r.width * 0.55) {
+      eatFood(o);
+    } else {
+      o.vy = 0;
+      o.ty = r.top + r.height * 0.9;
+      o.landAt = 0;
+      o.t0 = performance.now();
+      if (o.y > o.ty) o.y = o.ty;
+    }
+    pet.classList.remove('dangle');
+    press = null;
+    dragged = false;
+    return;
+  }
 
   // A. 快速甩动 = 扔小球（位移够大、时间够短）
   if (dragged && held < 340 && Math.abs(press.distX) > 70) {
@@ -1069,11 +1224,17 @@ function onUp(e) {
     const now = Date.now();
     noteTouch();
 
-    // 双击 → 蹦一下
+    // 双击 → 原地转一整圈再蹦
     if (now - lastTapAt < 320) {
       lastTapAt = 0;
-      react('hop', 470);
-      spawnBubble('嘿！');
+      pet.classList.remove('turns');
+      void pet.offsetWidth;
+      pet.classList.add('turns');
+      spawnBubble('转圈圈！');
+      setTimeout(function () {
+        pet.classList.remove('turns');
+        react('hop', 420);
+      }, 880);
       press = null;
       dragged = false;
       return;
@@ -1111,6 +1272,12 @@ function onUp(e) {
     if (fy > 0.78) {
       react('wiggle', 400);
       playSound('legs');
+    } else if (fy >= 0.50 && fy <= 0.75 && Date.now() - lastBellyAt > 1500) {
+      // 戳肚子 → 痒得扭动
+      lastBellyAt = Date.now();
+      react('wiggle', 560);
+      spawnBubble(pickOne(BELLY_LINES));
+      playSound('body');
     } else {
       // 双子：点击身体 → 摆插腰站姿定格秀（画布绘制，替换默认 hop）
       const ch = curChar();
@@ -1124,6 +1291,7 @@ function onUp(e) {
       }
     }
   }
+  pet.classList.remove('dangle');
   if (pendX || pendY) flushMove();
 
   const wasDragged = dragged;
