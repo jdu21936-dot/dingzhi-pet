@@ -137,3 +137,56 @@ html, body {
   background: transparent; flex: 0 0 auto;
 }
 .picker-item.on .dot { background: #8b9d83; }
+
+/* ===== 新增互动动作（v1.48） ===== */
+
+/* 拖起来：腿脚挣扎摆动 */
+#pet.dangle {
+  animation: dangle .40s ease-in-out infinite alternate;
+}
+@keyframes dangle {
+  from { transform: rotate(-5deg) translateY(-2px) }
+  to   { transform: rotate(5deg)  translateY(2px) }
+}
+
+/* 双击：原地转一整圈再蹦 */
+#pet.turns {
+  animation: turns 900ms cubic-bezier(.34,1.15,.44,1) both;
+}
+@keyframes turns {
+  0%   { transform: rotate(0deg)    scale(1,1) }
+  18%  { transform: rotate(-12deg)  scale(.94,1.07) }
+  38%  { transform: rotate(0deg)    scale(1.05,.95) }
+  62%  { transform: rotate(210deg)  translateY(-11px) scale(1,1) }
+  84%  { transform: rotate(352deg)  translateY(0)     scale(1.05,.95) }
+  100% { transform: rotate(360deg)  scale(1,1) }
+}
+
+/* 摸头享受：眯眼、轻轻起伏 */
+#pet.enjoy {
+  animation: enjoy 1.8s ease-in-out infinite;
+  filter: saturate(.94) brightness(1.03);
+}
+@keyframes enjoy {
+  0%, 100% { transform: scale(1,1) translateY(0) }
+  50%      { transform: scale(1.022,.972) translateY(2px) }
+}
+
+/* 发呆（闲置 45 秒） */
+#pet.daze {
+  animation: daze 4.8s ease-in-out infinite;
+  filter: saturate(.85) brightness(.975);
+}
+@keyframes daze {
+  0%, 100% { transform: scale(1,1) translateY(0) rotate(0deg) }
+  50%      { transform: scale(.995,1.006) translateY(1.5px) rotate(-.9deg) }
+}
+
+/* 吃东西：咀嚼 */
+#pet.chew {
+  animation: chew .40s ease-in-out 3;
+}
+@keyframes chew {
+  0%, 100% { transform: scale(1,1) }
+  50%      { transform: scale(1.035,.962) translateY(1px) }
+}
