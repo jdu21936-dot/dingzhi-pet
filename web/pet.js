@@ -2171,6 +2171,25 @@ function startGame() {
   spawnBubble('接住饼干！');
 }
 
+// 接饼干界面里所有尺寸的自适应基准。
+// 不看视口宽，直接量「角色实际占多大」——objectRect 已经扣掉 object-fit:contain
+// 留下的左右透明边，返回的是画面里真正能看到的那块像素范围。
+// 于是不管双指放大缩小、还是换成 duo 双子（内容本来更宽），
+// 饼干相对角色的比例始终一样。94 是视口 150px 时单人角色的内容宽，作为 1.0 基准。
+const GAME_BASE_W = 94;
+function gameUnit(w) {
+  let bw = 0;
+  try {
+    const box = objectRect(pet);
+    if (box && box.width) bw = box.width;
+  } catch (e) {}
+  if (!(bw > 8)) {
+    const vw = w || fx.clientWidth || window.innerWidth || 150;
+    bw = vw * (GAME_BASE_W / 150);   // 量不到角色时退回按视口估算
+  }
+  return Math.max(0.7, Math.min(2.6, bw / GAME_BASE_W));
+}
+
 function tickGame(now, dt) {
   const g = game;
   if (!g) return;
@@ -2179,7 +2198,15 @@ function tickGame(now, dt) {
   if (now - g.t0 > 45000) { endGame(false); return; }   // 45s 兜底，不能让 pet 一直不可见
   if (now - g.t0 > g.next) {
     g.next = now - g.t0 + Math.max(380, 900 - g.score * 40);
-    g.cookies.push({ x: 30 + Math.random() * Math.max(20, w - 60), y: -12, vy: g.speed + g.score * 7, spin: Math.random() * 6 });
+    const u = gameUnit(w);
+    const cw = 8 * u;
+    g.cookies.push({
+      x: 30 * u + Math.random() * Math.max(20, w - 60 * u),
+      y: -12 * u,
+      vy: (g.speed + g.score * 7) * u,
+      spin: Math.random() * 6,
+      r: cw
+    });
   }
   const r = pet.getBoundingClientRect();
   // 判定区改成「整个人」：原来只有 groundY..groundY+26 这么一条 26px 的窄带，
@@ -2218,17 +2245,19 @@ function drawGame(now) {
   const baseCx = g.cx || (r.left + r.width / 2);
   pet.style.translate = (g.x - baseCx).toFixed(1) + 'px 0px';
   ctx2.save();
+  const gu = gameUnit(w);
   for (let i = 0; i < g.cookies.length; i++) {
     const c = g.cookies[i];
+    const cr = c.r || 8 * gu;
     ctx2.save();
     ctx2.translate(c.x, c.y);
     ctx2.rotate(c.spin);
     ctx2.fillStyle = '#d9a86a';
-    ctx2.beginPath(); ctx2.arc(0, 0, 8, 0, Math.PI * 2); ctx2.fill();
+    ctx2.beginPath(); ctx2.arc(0, 0, cr, 0, Math.PI * 2); ctx2.fill();
     ctx2.fillStyle = '#6b4a2a';
-    ctx2.beginPath(); ctx2.arc(-2.6, -2.2, 1.5, 0, Math.PI * 2); ctx2.fill();
-    ctx2.beginPath(); ctx2.arc(2.8, 1.6, 1.5, 0, Math.PI * 2); ctx2.fill();
-    ctx2.beginPath(); ctx2.arc(0.6, 3.4, 1.2, 0, Math.PI * 2); ctx2.fill();
+    ctx2.beginPath(); ctx2.arc(-cr * 0.32, -cr * 0.28, cr * 0.19, 0, Math.PI * 2); ctx2.fill();
+    ctx2.beginPath(); ctx2.arc(cr * 0.35, cr * 0.20, cr * 0.19, 0, Math.PI * 2); ctx2.fill();
+    ctx2.beginPath(); ctx2.arc(cr * 0.08, cr * 0.42, cr * 0.15, 0, Math.PI * 2); ctx2.fill();
     ctx2.restore();
   }
   if (g.pop) {
@@ -2238,14 +2267,14 @@ function drawGame(now) {
       ctx2.save();
       ctx2.globalAlpha = 1 - pt;
       ctx2.fillStyle = '#e0703a';
-      ctx2.font = '700 13px "Microsoft YaHei", "PingFang SC", sans-serif';
-      ctx2.fillText('+1', g.pop.x - 7, g.pop.y - 8 - pt * 16);
+      ctx2.font = '700 ' + (13 * gu).toFixed(1) + 'px "Microsoft YaHei", "PingFang SC", sans-serif';
+      ctx2.fillText('+1', g.pop.x - 7 * gu, g.pop.y - (8 + pt * 16) * gu);
       ctx2.restore();
     }
   }
   ctx2.fillStyle = 'rgba(58,52,46,.85)';
-  ctx2.font = '600 12px "Microsoft YaHei", "PingFang SC", sans-serif';
-  ctx2.fillText(g.score + ' / ' + GAME_TARGET, 12, 22);
+  ctx2.font = '600 ' + (12 * gu).toFixed(1) + 'px "Microsoft YaHei", "PingFang SC", sans-serif';
+  ctx2.fillText(g.score + ' / ' + GAME_TARGET, 12 * gu, 22 * gu);
   ctx2.restore();
 }
 
