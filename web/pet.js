@@ -918,7 +918,7 @@ let peekT0 = 0;
 // 帧四周有透明留白，贴边时如果按图片框对齐，就会在屏幕边和她之间留一条空白，
 // 看起来像被切掉一块。这里量出每帧真正的不透明区域，按内容对齐。
 function contentBox(img) {
-  if (img.__box) return img.__box;
+  if (img.__box && img.__boxSrc === img.src) return img.__box;
   const nw = img.naturalWidth, nh = img.naturalHeight;
   const cv = document.createElement('canvas');
   cv.width = nw; cv.height = nh;
@@ -940,7 +940,31 @@ function contentBox(img) {
   } catch (e) { /* 取不到就退回整帧 */ }
   if (x1 <= x0) { x0 = 0; y0 = 0; x1 = nw - 1; y1 = nh - 1; }
   img.__box = { x0, y0, x1, y1, nw, nh };
+  img.__boxSrc = img.src;
   return img.__box;
+}
+
+// object-fit: contain 的元素矩形里，图片内容只占中间一块；再叠上 alpha 包围盒，
+// 才是角色真正站在屏幕上的位置。换装、画帽子都得以它为准。
+function objectRect(img) {
+  const r = img.getBoundingClientRect();
+  const nw = img.naturalWidth || 0, nh = img.naturalHeight || 0;
+  if (!nw || !nh || r.width < 2 || r.height < 2) return null;
+  const sc = Math.min(r.width / nw, r.height / nh);
+  const dw = nw * sc, dh = nh * sc;
+  const ox = r.left + (r.width - dw) / 2;
+  const oy = r.top + (r.height - dh) / 2;
+  let box = null;
+  try { box = img.__box && img.__boxSrc === img.src ? img.__box : contentBox(img); } catch (e) {}
+  if (box && box.x1 > box.x0) {
+    return {
+      left: ox + box.x0 * sc,
+      top: oy + box.y0 * sc,
+      width: (box.x1 - box.x0) * sc,
+      height: (box.y1 - box.y0) * sc,
+    };
+  }
+  return { left: ox, top: oy, width: dw, height: dh };
 }
 
 function drawPeek(now) {
@@ -1900,8 +1924,9 @@ function nextOutfit() {
 function drawOutfit(now) {
   if (outfit === 'none') return;
   if (duoIntro || duoPose || familyShow || game) return;
-  const r = pet.getBoundingClientRect();
-  if (r.width < 10) return;
+  let r = null;
+  try { r = objectRect(pet); } catch (e) {}
+  if (!r || r.width < 8) return;
   if (r.top < -r.height * 0.5) return;      // 角色被伞降甩到屏幕外时不画
   const cx = r.left + r.width / 2;
   const top = r.top + r.height * 0.035;
