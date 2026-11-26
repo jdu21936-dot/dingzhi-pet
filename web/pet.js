@@ -1313,13 +1313,20 @@ function onMove(e) {
   lookAt(t.clientX, t.clientY);
   const dx = t.clientX - press.lastX;
   const dy = t.clientY - press.lastY;
-  if (!dragged && Math.hypot(t.clientX - press.x, t.clientY - press.y) > 14) {
+  // 拖动起步阈值 5px：一挪就跟手，不用先拖出一段距离角色才动
+  const moved = Math.hypot(t.clientX - press.x, t.clientY - press.y);
+  if (!dragged && moved > 5) {
     dragged = true;
-    clearTimeout(press.holdTimer);
     clearTimeout(press.enjoyTimer);
     stopEnjoy();
     pet.classList.add('dangle');
     if (Math.random() < 0.7) spawnBubble('放我下来～');
+  }
+  // 取消长按要迟钝一点：手指按住时的轻微抖动不该把 400ms 的定时器清掉，
+  // 所以拖动的起步阈值（5px）和掐断长按的阈值（14px）分开算
+  if (!press.holdKilled && moved > 14) {
+    press.holdKilled = true;
+    clearTimeout(press.holdTimer);
   }
   if (dragged && bridge) {
     const sx = (t.screenX !== undefined ? t.screenX : t.clientX);
