@@ -208,7 +208,7 @@ function bumpStat(k) {
   loadStats();
   STATS[k] = (STATS[k] | 0) + 1;
   saveStats();
-  setTimeout(refreshNotify, 60);
+  setTimeout(refreshNotify, 1500);   // 别每碰一下就重建通知，主线程会被通知构建占满
 }
 
 // 晚上第一次搭话时报今天的数字；没被碰过就不说，免得每句都是 0
@@ -1878,20 +1878,30 @@ function fitTray() {
   if (!trayEl) return;
   const vw = window.innerWidth || 150;
   const vh = window.innerHeight || 210;
-  const cx = vw / 2;
-  const cy = vh * 0.56;                       // 环心落在角色上半身
-  const R = Math.min(vw * 0.345, vh * 0.255); // 半径同时受宽高限制，缩小时一起收
-  const n = 8;
+  // 方形网格：每页 4 列 × 2 行，贴底部居中（图标保留，布局回到方块）
+  const cols = 4, rows = 2;
+  const m = Math.max(4, Math.round(Math.min(vw, vh) * 0.045));
+  const gap = Math.max(2, Math.round(Math.min(vw, vh) * 0.022));
+  let cell = Math.floor(Math.min(
+    (vw - m * 2 - gap * (cols - 1)) / cols,
+    (vh - m * 2 - gap * (rows - 1)) / rows
+  ));
+  if (cell < 18) cell = 18;
+  const gw = cell * cols + gap * (cols - 1);
+  const gh = cell * rows + gap * (rows - 1);
+  const x0 = Math.round((vw - gw) / 2);
+  const y0 = Math.round(vh - gh - m);
+  trayEl.style.setProperty('--dot', cell + 'px');
   const btns = trayEl.querySelectorAll('.tray-btn');
+  const seen = [0, 0];
   for (let i = 0; i < btns.length; i++) {
-    const k = i % n;
-    const ang = -Math.PI / 2 + k * (Math.PI * 2 / n);   // 从正上方开始，顺时针
-    btns[i].style.left = (cx + Math.cos(ang) * R).toFixed(1) + 'px';
-    btns[i].style.top  = (cy + Math.sin(ang) * R).toFixed(1) + 'px';
+    const page = btns[i].getAttribute('data-page') === '1' ? 1 : 0;
+    const idx = seen[page]++;
+    const c = idx % cols;
+    const r = Math.floor(idx / cols);
+    btns[i].style.left = Math.round(x0 + c * (cell + gap) + cell / 2) + 'px';
+    btns[i].style.top = Math.round(y0 + r * (cell + gap) + cell / 2) + 'px';
   }
-  // 圆点尺寸跟着半径走，避免小屏时挤在一起
-  const d = Math.max(26, Math.min(36, R * 0.62));
-  trayEl.style.setProperty('--dot', d.toFixed(1) + 'px');
 }
 
 // ---------- 电量与通知栏 ----------
