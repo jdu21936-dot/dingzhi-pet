@@ -1069,6 +1069,8 @@ function onDown(e) {
     beginPinch(e.touches);
     return;
   }
+  if (ghostOn) { toggleGhost(); return; }        // 藏起来状态下点一下恢复
+  if (trayOpen()) { closeTray(); return; }       // 托盘打开时点角色先收起
   if (chute) return;
   // 抓饼干：手指落在饼干上就拎起来，拖到嘴边会吃掉
   const tGrab = e.touches ? e.touches[0] : e;
@@ -1117,10 +1119,10 @@ function onDown(e) {
       if (!dragged && enjoying) { stopEnjoy(); startParachute(); }
     }, 2400);
   } else if (fy0 > 0.78) {
-    // 腿长按 = 换角色
+    // 腿长按 = 弹出互动托盘（换角色已收进托盘里）
     press.charTimer = setTimeout(() => {
-      if (!dragged) openPicker();
-    }, 700);
+      if (!dragged) openTray();
+    }, 620);
   } else {
     // 身体长按 = 喂饼干
     press.feedTimer = setTimeout(() => {
@@ -1668,6 +1670,86 @@ function drawDuoPose(now) {
     refreshDuoDisplay();
     setTimeout(() => startDuoFx('thread'), 320);
   }
+}
+
+// ---------- 互动托盘（长按腿弹出） ----------
+const trayEl = document.getElementById('tray');
+let sleepTimer = null;
+let miniOn = false;
+let ghostOn = false;
+let scaleBeforeGhost = 1.0;
+
+function trayOpen() { return trayEl && !trayEl.classList.contains('hidden'); }
+function openTray() {
+  if (!trayEl) return;
+  closePicker();
+  trayEl.classList.remove('hidden');
+  if (bridge && bridge.log) { try { bridge.log('打开互动托盘'); } catch (e) {} }
+}
+function closeTray() {
+  if (!trayEl) return;
+  trayEl.classList.add('hidden');
+}
+
+function startSleepNow() {
+  pet.classList.add('sleep');
+  spawnBubble('z…');
+  clearTimeout(sleepTimer);
+  sleepTimer = setTimeout(function () {
+    pet.classList.remove('sleep');
+    spawnBubble('睡醒啦');
+  }, 20000);
+}
+
+function toggleMini() {
+  if (!bridge || !bridge.setScaleF) return;
+  miniOn = !miniOn;
+  try { bridge.setScaleF(miniOn ? 0.68 : 1.0); } catch (e) {}
+  spawnBubble(miniOn ? '变小一点' : '回来啦');
+}
+
+function toggleGhost() {
+  if (!bridge || !bridge.setScaleF) return;
+  if (!ghostOn) {
+    try { scaleBeforeGhost = Number(bridge.getScale ? bridge.getScale() : 1) || 1; } catch (e) { scaleBeforeGhost = 1; }
+    ghostOn = true;
+    try { bridge.setScaleF(0.28); } catch (e) {}
+    pet.style.opacity = '0.3';
+    spawnBubble('藏一下…点我出来');
+  } else {
+    ghostOn = false;
+    try { bridge.setScaleF(scaleBeforeGhost || 1.0); } catch (e) {}
+    pet.style.opacity = '';
+    spawnBubble('我回来啦');
+  }
+}
+
+function doTray(act) {
+  closeTray();
+  if (act === 'feed') { addFood(); setTimeout(function () { spawnBubble('给我的吗？'); }, 240); }
+  else if (act === 'say') { spawnBubble(randomLine()); }
+  else if (act === 'chute') { startParachute(); }
+  else if (act === 'sleep') { startSleepNow(); }
+  else if (act === 'char') { openPicker(); }
+  else if (act === 'edge') {
+    if (bridge && bridge.snapToEdge) { try { bridge.snapToEdge(); } catch (e) {} }
+    spawnBubble('贴这边');
+  }
+  else if (act === 'scale') { toggleMini(); }
+  else if (act === 'ghost') { toggleGhost(); }
+  else if (act === 'update') {
+    spawnBubble('看看有没有新版…');
+    if (bridge && bridge.checkUpdate) { try { bridge.checkUpdate(); } catch (e) {} }
+  }
+}
+
+if (trayEl) {
+  trayEl.addEventListener('click', function (e) {
+    const head = e.target.closest ? e.target.closest('.tray-head') : null;
+    if (head) { closeTray(); return; }
+    const btn = e.target.closest ? e.target.closest('.tray-btn') : null;
+    if (btn) doTray(btn.getAttribute('data-act'));
+  });
 }
 
 // ---------- 启动 ----------
