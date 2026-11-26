@@ -1,1 +1,1 @@
-{"versionCode":58,"versionName":"1.56","url":"https://raw.githubusercontent.com/jdu21936-dot/dingzhi-pet/main/dingzhi-pet.apk","note":"缩小状态下托盘只显示图标，格子更宽松"}
+{"versionCode":59,"versionName":"1.57","url":"https://raw.githubusercontent.com/jdu21936-dot/dingzhi-pet/main/dingzhi-pet.apk","note":"小游戏加退出与 45 秒超时兜底，防止角色卡在隐藏状态"}
