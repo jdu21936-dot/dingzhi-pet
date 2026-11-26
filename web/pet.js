@@ -1288,11 +1288,13 @@ function onDown(e) {
     press.chuteTimer = setTimeout(() => {
       if (!dragged && enjoying) { stopEnjoy(); startParachute(); }
     }, 2400);
-  } else if (fy0 > 0.78) {
-    // 腿长按 = 弹出互动托盘（换角色已收进托盘里）
+  } else if (fy0 > 0.66) {
+    // 腿长按 = 弹出互动托盘。320ms 就出（原来 620ms，按住稍短一点就弹不出来）
+    // 并且按住腿时手指的小抖动不算拖动，否则 timer 每次都被 clearTimeout 掉
+    press.legHold = true;
     press.charTimer = setTimeout(() => {
-      if (!dragged) openTray();
-    }, 620);
+      if (!dragged || press.legHold) openTray();
+    }, 320);
   } else {
     // 身体长按 = 喂饼干
     press.feedTimer = setTimeout(() => {
@@ -1319,10 +1321,10 @@ function onMove(e) {
   lookAt(t.clientX, t.clientY);
   const dx = t.clientX - press.lastX;
   const dy = t.clientY - press.lastY;
-  if (!dragged && Math.hypot(t.clientX - press.x, t.clientY - press.y) > 8) {
+  if (!dragged && Math.hypot(t.clientX - press.x, t.clientY - press.y) > 14) {
     dragged = true;
     clearTimeout(press.feedTimer);
-    clearTimeout(press.charTimer);
+    if (!press.legHold) clearTimeout(press.charTimer);
     clearTimeout(press.enjoyTimer);
     stopEnjoy();
     pet.classList.add('dangle');
