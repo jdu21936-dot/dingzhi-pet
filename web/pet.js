@@ -1853,16 +1853,25 @@ let doodle = null;
 
 // 按视口算托盘格子尺寸：桌宠被 setScaleF 缩小时 WebView 视口随之变小，
 // 固定字号会让 4 行放不下、底部被裁
+// 环形菜单：8 个点位绕角色一圈，坐标按视口算（真机视口只有 150×210 CSS px）
 function fitTray() {
   if (!trayEl) return;
+  const vw = window.innerWidth || 150;
   const vh = window.innerHeight || 210;
-  const rows = 4;
-  const headH = Math.max(9, vh * 0.075);
-  const cell = Math.max(19, Math.min(40, (vh * 0.94 - headH - 10) / rows));
-  trayEl.style.setProperty('--cell', cell.toFixed(1) + 'px');
-  trayEl.style.setProperty('--tray-head', Math.max(6.5, Math.min(9, cell * 0.26)).toFixed(1) + 'px');
-  trayEl.style.setProperty('--tray-fs', Math.max(6.5, Math.min(9.5, cell * 0.31)).toFixed(1) + 'px');
-  trayEl.classList.toggle('compact', cell < 27);
+  const cx = vw / 2;
+  const cy = vh * 0.56;                       // 环心落在角色上半身
+  const R = Math.min(vw * 0.345, vh * 0.255); // 半径同时受宽高限制，缩小时一起收
+  const n = 8;
+  const btns = trayEl.querySelectorAll('.tray-btn');
+  for (let i = 0; i < btns.length; i++) {
+    const k = i % n;
+    const ang = -Math.PI / 2 + k * (Math.PI * 2 / n);   // 从正上方开始，顺时针
+    btns[i].style.left = (cx + Math.cos(ang) * R).toFixed(1) + 'px';
+    btns[i].style.top  = (cy + Math.sin(ang) * R).toFixed(1) + 'px';
+  }
+  // 圆点尺寸跟着半径走，避免小屏时挤在一起
+  const d = Math.max(26, Math.min(36, R * 0.62));
+  trayEl.style.setProperty('--dot', d.toFixed(1) + 'px');
 }
 
 function startDoodle() {
@@ -2172,6 +2181,7 @@ function openTray() {
   closePicker();
   fitTray();
   trayEl.classList.remove('hidden');
+  trayEl.classList.remove('page2');
   if (bridge && bridge.log) { try { bridge.log('打开互动托盘 v5'); } catch (e) {} }
 }
 function closeTray() {
@@ -2213,6 +2223,8 @@ function toggleGhost() {
 }
 
 function doTray(act) {
+  if (act === 'more') { trayEl.classList.add('page2'); bridge && bridge.log('托盘 -> 第二页'); return; }
+  if (act === 'back') { trayEl.classList.remove('page2'); bridge && bridge.log('托盘 -> 第一页'); return; }
   closeTray();
   if (bridge && bridge.log) { try { bridge.log('托盘点击 -> ' + act); } catch (e) {} }
   if (act === 'feed') { addFood(); setTimeout(function () { spawnBubble('给我的吗？'); }, 240); }
