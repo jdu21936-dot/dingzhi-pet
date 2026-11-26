@@ -131,6 +131,10 @@ function currentGroup() {
 
 function randomLine() {
   if (raining && Math.random() < 0.35) return pickLine('rain');
+  const ph = dayPhase();
+  if ((ph === 'night' || ph === 'late' || ph === 'dawn') && Math.random() < 0.34) {
+    return pickOne(PHASE_LINES[ph]);
+  }
   return pickLine(currentGroup());
 }
 
@@ -145,6 +149,112 @@ function dailyGreeting() {
   const g = h < 5 ? 'greetNight' : h < 11 ? 'greetMorning' : h < 14 ? 'greetNoon'
           : h < 19 ? 'greetEvening' : 'greetNight';
   setTimeout(() => spawnBubble(pickLine(g)), 900);
+  if (h >= 5 && h < 10) setTimeout(() => react('yawn', 1500), 700);   // 早上刚醒
+  const recap = statsRecap();
+  if (recap && h >= 18) setTimeout(() => spawnBubble(recap), 3600);
+}
+
+// ---------- 作息：一天四段 ----------
+function dayPhase() {
+  const h = new Date().getHours();
+  if (h >= 5 && h < 9) return 'dawn';
+  if (h >= 9 && h < 14) return 'day';
+  if (h >= 14 && h < 18) return 'noon';
+  if (h >= 18 && h < 22) return 'eve';
+  if (h >= 22 || h < 2) return 'night';
+  return 'late';
+}
+
+const PHASE_LINES = {
+  dawn: ['刚睡醒…', '哈啊…早安', '头发乱糟糟的', '眼睛还没睁开'],
+  day: ['在呢', '今天也一起', '精神不错'],
+  noon: ['有点困', '午后好安静', '打个盹吧'],
+  eve: ['天黑了', '今天怎么样', '晚饭吃了吗'],
+  night: ['该睡了', '好晚了', '别熬了', '我先困了'],
+  late: ['这么晚…', '快去睡', '陪你到睡着'],
+};
+
+function applyDayLook() {
+  const ph = dayPhase();
+  pet.classList.toggle('night', ph === 'night' || ph === 'late');
+}
+
+// ---------- 统计：它记得你 ----------
+const STATS = { day: '', pat: 0, feed: 0, drag: 0, play: 0 };
+let statsLoaded = false;
+
+function loadStats() {
+  if (statsLoaded) return;
+  statsLoaded = true;
+  try {
+    const raw = localStorage.getItem('pet.stats');
+    if (raw) {
+      const o = JSON.parse(raw);
+      if (o && o.day === new Date().toDateString()) {
+        STATS.day = o.day;
+        STATS.pat = o.pat | 0; STATS.feed = o.feed | 0;
+        STATS.drag = o.drag | 0; STATS.play = o.play | 0;
+      }
+    }
+  } catch (e) {}
+  STATS.day = new Date().toDateString();
+}
+
+function saveStats() {
+  try { localStorage.setItem('pet.stats', JSON.stringify(STATS)); } catch (e) {}
+}
+
+function bumpStat(k) {
+  loadStats();
+  STATS[k] = (STATS[k] | 0) + 1;
+  saveStats();
+}
+
+// 晚上第一次搭话时报今天的数字；没被碰过就不说，免得每句都是 0
+function statsRecap() {
+  loadStats();
+  const total = STATS.pat + STATS.feed + STATS.drag + STATS.play;
+  if (total < 3) return null;
+  const key = 'pet.recap.' + STATS.day;
+  try { if (localStorage.getItem(key)) return null; localStorage.setItem(key, '1'); } catch (e) {}
+  const bits = [];
+  if (STATS.pat)  bits.push('摸了我 ' + STATS.pat + ' 下');
+  if (STATS.feed) bits.push('喂我 ' + STATS.feed + ' 次');
+  if (STATS.drag) bits.push('拖来拖去 ' + STATS.drag + ' 次');
+  if (STATS.play) bits.push('陪我玩 ' + STATS.play + ' 次');
+  return '今天你' + bits.join('、') + '。';
+}
+
+// ---------- 天气：雨 / 雪 / 高温 / 大风 ----------
+const WX = { code: null, temp: null, wind: null, at: 0 };
+const SNOW_CODES = [71, 73, 75, 77, 85, 86];
+const FLAKES = [];
+
+function applyWeatherLook() {
+  const hot = (WX.temp !== null && WX.temp >= 30);
+  const windy = (WX.wind !== null && WX.wind >= 25);
+  pet.classList.toggle('hot', hot && !pet.classList.contains('windy'));
+  pet.classList.toggle('windy', windy);
+}
+
+function stepFlakes(now, dt) {
+  const snowing = WX.code !== null && SNOW_CODES.indexOf(WX.code) >= 0;
+  if (!snowing) { if (FLAKES.length) FLAKES.length = 0; return; }
+  if (FLAKES.length < 26 && Math.random() < dt * 1.6) {
+    FLAKES.push({ x: Math.random() * fx.width, y: -8, r: 1.2 + Math.random() * 1.8,
+                  vy: 18 + Math.random() * 26, vx: (Math.random() - 0.5) * 12, a: 0.55 + Math.random() * 0.35 });
+  }
+  const ctx = fx.getContext('2d');
+  ctx.save();
+  for (let i = FLAKES.length - 1; i >= 0; i--) {
+    const f = FLAKES[i];
+    f.y += f.vy * dt; f.x += f.vx * dt;
+    if (f.y > fx.height + 6) { FLAKES.splice(i, 1); continue; }
+    ctx.globalAlpha = f.a;
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath(); ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.restore();
 }
 
 // 天气：先按 IP 定位，再查 open-meteo 的天气代码，判断是否在下雨
@@ -155,12 +265,25 @@ async function refreshWeather() {
     const loc = await fetch('https://ipwho.is/').then((r) => r.json());
     if (!loc || loc.success === false || !loc.latitude) return;
     const url = 'https://api.open-meteo.com/v1/forecast?latitude=' + loc.latitude +
-                '&longitude=' + loc.longitude + '&current=weather_code';
+                '&longitude=' + loc.longitude +
+                '&current=weather_code,temperature_2m,wind_speed_10m';
     const w = await fetch(url).then((r) => r.json());
-    const code = w && w.current && w.current.weather_code;
+    const cur = (w && w.current) || {};
+    const code = cur.weather_code;
     const wasRain = raining;
     raining = RAIN_CODES.indexOf(code) >= 0;
-    if (raining && !wasRain) setTimeout(() => spawnBubble(pickLine('rain')), 1600);
+    WX.code = (typeof code === 'number') ? code : null;
+    WX.temp = (typeof cur.temperature_2m === 'number') ? cur.temperature_2m : null;
+    WX.wind = (typeof cur.wind_speed_10m === 'number') ? cur.wind_speed_10m : null;
+    WX.at = Date.now();
+    applyWeatherLook();
+    if (raining && !wasRain) {
+      setTimeout(() => spawnBubble(pickLine('rain')), 1600);
+      setTimeout(() => { if (!chute && !duoIntro && !duoPose) startParachute(); }, 2600);
+    }
+    if (WX.code !== null && SNOW_CODES.indexOf(WX.code) >= 0) {
+      setTimeout(() => spawnBubble('下雪了…'), 2200);
+    }
   } catch (e) { /* 没网就算了 */ }
 }
 
@@ -340,6 +463,7 @@ function addBall(dir) {
 
 // 摸摸头：1.2s 内连点头顶三次
 function patHead() {
+  bumpStat('pat');
   headTaps = [];
   react('shy', 760);
   spawnBubble('好舒服～');
@@ -349,6 +473,7 @@ function patHead() {
 
 // 喂食：掉一块饼干，落到脚边再"吃掉"
 function feed() {
+  bumpStat('feed');
   addFood();
   spawnBubble('吃饼干～');
   setMood('happy', 90000);
@@ -543,12 +668,21 @@ function drawBubbles(now) {
   const w = fx.clientWidth || window.innerWidth;
   const h = fx.clientHeight || window.innerHeight;
   ctx.clearRect(0, 0, w, h);
+  stepFlakes(now, lastFrameAt ? Math.min(0.05, (now - lastFrameAt) / 1000) : 0.016);
   // 双子入场组合动画 / 插腰站姿互动：画布优先画（气泡叠在它上面），跳过伞/探头/小动作
+  const __dt = lastFrameAt ? Math.min(0.05, (now - lastFrameAt) / 1000) : 0.016;
   if (duoIntro) {
     drawDuoIntro(now);
   } else if (duoPose) {
     drawDuoPose(now);
+  } else if (familyShow) {
+    drawFamily(now);
+  } else if (game) {
+    tickGame(now, __dt);
+    if (game) drawGame(now);
   }
+  drawDoodle(now);
+  if (!duoIntro && !duoPose && !familyShow && !game) drawOutfit(now);
   for (let i = BUBBLES.length - 1; i >= 0; i--) {
     const b = BUBBLES[i];
     const t = (now - b.t0) / LIFE;
@@ -613,7 +747,7 @@ function drawBubbles(now) {
     ctx.restore();
   }
   const __now = now;
-  if (!duoIntro && !duoPose) {
+  if (!duoIntro && !duoPose && !familyShow && !game) {
     // 双子入场组合动画 / 插腰站姿互动期间跳过这些 canvas 绘制，避免打架
     drawChute(__now);
     drawPeek(__now);
@@ -1060,6 +1194,9 @@ function endPinch() {
 function onDown(e) {
   noteTouch();
   // 双子组合出场动画 / 插腰站姿互动期间忽略触摸，避免把正在播放的动画拖走/打断
+  if (doodle) { doodleAdd(e.touches[0].clientX, e.touches[0].clientY); return; }
+  if (game) { game.x = e.touches[0].clientX; return; }
+  if (familyShow) { familyShow = null; pet.style.visibility = ''; return; }
   if (duoIntro || duoPose) return;
   if (e.touches && e.touches.length >= 3) {
     openPicker();
@@ -1139,6 +1276,8 @@ function onMove(e) {
     updatePinch(e.touches);
     return;
   }
+  if (doodle) { const dd = e.touches[0]; doodleAdd(dd.clientX, dd.clientY); return; }
+  if (game) { game.x = e.touches[0].clientX; return; }
   if (!press) return;
   const t = e.touches ? e.touches[0] : e;
   if (press.grabFood) {
@@ -1183,7 +1322,9 @@ function onUp(e) {
     if (remain < 2) endPinch();
     return;
   }
+  if (doodle || game) return;
   if (!press) return;
+  if (press.dragged) bumpStat('drag');
   clearTimeout(press.feedTimer);
   clearTimeout(press.charTimer);
   clearTimeout(press.chuteTimer);
@@ -1676,6 +1817,284 @@ function drawDuoPose(now) {
 }
 
 // ---------- 互动托盘（长按腿弹出） ----------
+// ---------- 涂鸦留言 ----------
+let doodle = null;
+
+function startDoodle() {
+  doodle = { pts: [], t0: performance.now(), dur: 7000 };
+  spawnBubble(pickOne(['画吧，我在看', '给你张纸', '写点什么？']));
+}
+
+function doodleAdd(x, y) {
+  if (!doodle) return;
+  const last = doodle.pts[doodle.pts.length - 1];
+  if (last && Math.hypot(x - last.x, y - last.y) < 2.2) return;
+  doodle.pts.push({ x, y });
+  if (doodle.pts.length > 1200) doodle.pts.shift();
+}
+
+function drawDoodle(now) {
+  if (!doodle) return;
+  const t = now - doodle.t0;
+  if (t > doodle.dur) {
+    if (doodle.pts.length > 8) spawnBubble(pickOne(['画的什么呀', '我看到了', '收下了', '这个我要留着']));
+    doodle = null;
+    return;
+  }
+  const a = t > doodle.dur - 900 ? Math.max(0, 1 - (t - (doodle.dur - 900)) / 900) : 1;
+  if (doodle.pts.length < 2) return;
+  const ctx2 = fx.getContext('2d');
+  ctx2.save();
+  ctx2.globalAlpha = a;
+  ctx2.strokeStyle = '#3b3630';
+  ctx2.lineWidth = 2.4;
+  ctx2.lineCap = 'round';
+  ctx2.lineJoin = 'round';
+  ctx2.beginPath();
+  ctx2.moveTo(doodle.pts[0].x, doodle.pts[0].y);
+  for (let i = 1; i < doodle.pts.length; i++) ctx2.lineTo(doodle.pts[i].x, doodle.pts[i].y);
+  ctx2.stroke();
+  ctx2.restore();
+}
+
+// ---------- 简笔换装 ----------
+const OUTFITS = ['none', 'straw', 'beanie', 'crown', 'scarf', 'ribbon'];
+const OUTFIT_LINES = { straw: '草帽！', beanie: '暖和吧', crown: '我是王', scarf: '围巾软软的', ribbon: '蝴蝶结好看吗' };
+let outfit = 'none';
+try { outfit = localStorage.getItem('pet.outfit') || 'none'; } catch (e) {}
+if (OUTFITS.indexOf(outfit) < 0) outfit = 'none';
+
+function nextOutfit() {
+  outfit = OUTFITS[(OUTFITS.indexOf(outfit) + 1) % OUTFITS.length];
+  try { localStorage.setItem('pet.outfit', outfit); } catch (e) {}
+  if (outfit === 'none') spawnBubble('先不戴了');
+  else spawnBubble(OUTFIT_LINES[outfit] || '好看吗');
+}
+
+function drawOutfit(now) {
+  if (outfit === 'none') return;
+  const r = pet.getBoundingClientRect();
+  if (r.width < 10) return;
+  const cx = r.left + r.width / 2;
+  const top = r.top + r.height * 0.035;
+  const u = r.width / 100;                 // 以角色宽度为单位的比例尺
+  const bob = Math.sin(now / 620) * 0.6 * u;
+  const ctx2 = fx.getContext('2d');
+  ctx2.save();
+  ctx2.lineWidth = Math.max(1.2, 1.1 * u);
+  ctx2.strokeStyle = 'rgba(58,52,46,.92)';
+
+  if (outfit === 'straw') {
+    ctx2.fillStyle = '#e8c97a';
+    ctx2.beginPath();
+    ctx2.ellipse(cx, top + 2 * u + bob, 32 * u, 7.5 * u, 0, 0, Math.PI * 2);
+    ctx2.fill(); ctx2.stroke();
+    ctx2.fillStyle = '#f0d896';
+    ctx2.beginPath();
+    ctx2.ellipse(cx, top - 2 * u + bob, 17 * u, 12 * u, 0, Math.PI, Math.PI * 2);
+    ctx2.fill(); ctx2.stroke();
+  } else if (outfit === 'beanie') {
+    ctx2.fillStyle = '#c96b6b';
+    ctx2.beginPath();
+    ctx2.ellipse(cx, top + 1 * u + bob, 19 * u, 13 * u, 0, Math.PI, Math.PI * 2);
+    ctx2.fill(); ctx2.stroke();
+    ctx2.beginPath();
+    ctx2.moveTo(cx - 19 * u, top + 1 * u + bob);
+    ctx2.lineTo(cx + 19 * u, top + 1 * u + bob);
+    ctx2.stroke();
+    ctx2.fillStyle = '#f2e6d8';
+    ctx2.beginPath(); ctx2.arc(cx, top - 12 * u + bob, 5 * u, 0, Math.PI * 2); ctx2.fill(); ctx2.stroke();
+  } else if (outfit === 'crown') {
+    ctx2.fillStyle = '#f2cf5b';
+    ctx2.beginPath();
+    const w2 = 17 * u;
+    ctx2.moveTo(cx - w2, top + 3 * u + bob);
+    ctx2.lineTo(cx - w2, top - 7 * u + bob);
+    ctx2.lineTo(cx - w2 * 0.45, top - 1 * u + bob);
+    ctx2.lineTo(cx, top - 10 * u + bob);
+    ctx2.lineTo(cx + w2 * 0.45, top - 1 * u + bob);
+    ctx2.lineTo(cx + w2, top - 7 * u + bob);
+    ctx2.lineTo(cx + w2, top + 3 * u + bob);
+    ctx2.closePath();
+    ctx2.fill(); ctx2.stroke();
+  } else if (outfit === 'scarf') {
+    const ny = r.top + r.height * 0.30 + bob;
+    ctx2.fillStyle = '#7d9ec4';
+    ctx2.beginPath();
+    ctx2.ellipse(cx, ny, 21 * u, 6 * u, 0, 0, Math.PI * 2);
+    ctx2.fill(); ctx2.stroke();
+    ctx2.beginPath();
+    ctx2.ellipse(cx + 10 * u, ny + 13 * u, 5.5 * u, 11 * u, 0.2, 0, Math.PI * 2);
+    ctx2.fill(); ctx2.stroke();
+  } else if (outfit === 'ribbon') {
+    const ty = top - 2 * u + bob;
+    ctx2.fillStyle = '#e88ba6';
+    ctx2.beginPath();
+    ctx2.moveTo(cx, ty);
+    ctx2.lineTo(cx - 15 * u, ty - 7 * u);
+    ctx2.lineTo(cx - 15 * u, ty + 7 * u);
+    ctx2.closePath(); ctx2.fill(); ctx2.stroke();
+    ctx2.beginPath();
+    ctx2.moveTo(cx, ty);
+    ctx2.lineTo(cx + 15 * u, ty - 7 * u);
+    ctx2.lineTo(cx + 15 * u, ty + 7 * u);
+    ctx2.closePath(); ctx2.fill(); ctx2.stroke();
+    ctx2.beginPath(); ctx2.arc(cx, ty, 3.4 * u, 0, Math.PI * 2); ctx2.fill(); ctx2.stroke();
+  }
+  ctx2.restore();
+}
+
+// ---------- 全家福：三个角色同框 ----------
+let familyShow = null;
+const FAMILY_DUR = 7200;
+
+function startFamily() {
+  if (familyShow) return;
+  familyShow = { t0: performance.now() };
+  pet.style.visibility = 'hidden';
+  duoImg('char_a.png');
+  duoImg('char_b.png');
+  spawnBubble(pickOne(['都来了', '热闹吧', '一起站会儿']));
+}
+
+function drawFamily(now) {
+  const f = familyShow;
+  const t = (now - f.t0) / 1000;
+  if (t > FAMILY_DUR / 1000) {
+    familyShow = null;
+    pet.style.visibility = '';
+    return;
+  }
+  const ctx2 = fx.getContext('2d');
+  const w = fx.clientWidth || window.innerWidth;
+  const h = fx.clientHeight || window.innerHeight;
+  const r = pet.getBoundingClientRect();
+  const boxTop = r.top > 0 ? r.top : h * 0.18;
+  const boxH = r.height > 10 ? r.height : h * 0.82;
+  const bw = r.width > 10 ? r.width : w * 0.5;
+
+  const trio = [];
+  const loopImg = frames.length ? frames[idx % frames.length] : null;
+  if (loopImg && loopImg.complete && loopImg.naturalWidth) trio.push(loopImg);
+  const pa = duoImg('char_a.png'), pb = duoImg('char_b.png');
+  if (pa && pa.complete && pa.naturalWidth) trio.push(pa);
+  if (pb && pb.complete && pb.naturalWidth) trio.push(pb);
+  if (!trio.length) return;
+
+  const gap = bw * 0.04;
+  const eachW = (bw * 1.9 - gap * (trio.length - 1)) / trio.length;
+  let x = w / 2 - (bw * 1.9) / 2;
+  const fadeIn = Math.min(1, t / 0.35);
+  const fadeOut = t > FAMILY_DUR / 1000 - 0.5 ? Math.max(0, (FAMILY_DUR / 1000 - t) / 0.5) : 1;
+  ctx2.save();
+  ctx2.globalAlpha = Math.min(fadeIn, fadeOut);
+  for (let i = 0; i < trio.length; i++) {
+    const im = trio[i];
+    const sc = eachW / im.naturalWidth;
+    const dw = eachW;
+    const dh = im.naturalHeight * sc;
+    const ph = i * 1.15;
+    const bob = Math.sin(now / 480 + ph) * Math.max(1.5, boxH * 0.007);
+    const dx = x + i * (eachW + gap);
+    const dy = boxTop + boxH - dh + bob;
+    ctx2.drawImage(im, dx, dy, dw, dh);
+    // 侧头看邻居：每 1.8s 换一次朝向
+    const look = Math.sin(now / 900 + ph) > 0.55 ? (i === 0 ? -1 : 1) : 0;
+    if (look) {
+      ctx2.globalAlpha = Math.min(fadeIn, fadeOut) * 0.85;
+      ctx2.fillStyle = '#fff8e6';
+      const ey = dy + dh * 0.19;
+      ctx2.beginPath();
+      ctx2.arc(dx + dw * 0.5 + look * dw * 0.055, ey, Math.max(1.4, dw * 0.024), 0, Math.PI * 2);
+      ctx2.fill();
+      ctx2.globalAlpha = Math.min(fadeIn, fadeOut);
+    }
+  }
+  ctx2.restore();
+}
+
+// ---------- 接饼干小游戏 ----------
+let game = null;
+const GAME_TARGET = 10;
+
+function startGame() {
+  if (game) return;
+  game = { cookies: [], score: 0, t0: performance.now(), next: 0, x: 0, speed: 62, miss: 0 };
+  const r = pet.getBoundingClientRect();
+  game.x = r.left + r.width / 2;
+  pet.style.visibility = 'hidden';
+  spawnBubble('接住饼干！');
+}
+
+function tickGame(now, dt) {
+  const g = game;
+  if (!g) return;
+  const w = fx.clientWidth || window.innerWidth;
+  const h = fx.clientHeight || window.innerHeight;
+  if (now - g.t0 > g.next) {
+    g.next = now - g.t0 + Math.max(420, 780 - g.score * 34);
+    g.cookies.push({ x: 30 + Math.random() * Math.max(20, w - 60), y: -12, vy: g.speed + g.score * 7, spin: Math.random() * 6 });
+  }
+  const r = pet.getBoundingClientRect();
+  const groundY = r.top + r.height * 0.86;
+  const reach = Math.max(26, (r.width || w * 0.5) * 0.42);
+  for (let i = g.cookies.length - 1; i >= 0; i--) {
+    const c = g.cookies[i];
+    c.y += c.vy * dt;
+    c.spin += dt * 3.2;
+    if (c.y >= groundY && c.y <= groundY + 26 && Math.abs(c.x - g.x) < reach) {
+      g.cookies.splice(i, 1);
+      g.score++;
+      bumpStat('play');
+      if (g.score >= GAME_TARGET) { endGame(true); return; }
+      continue;
+    }
+    if (c.y > h + 16) { g.cookies.splice(i, 1); g.miss++; }
+  }
+}
+
+function drawGame(now) {
+  const g = game;
+  if (!g) return;
+  const ctx2 = fx.getContext('2d');
+  const r = pet.getBoundingClientRect();
+  const w = fx.clientWidth || window.innerWidth;
+  const h = fx.clientHeight || window.innerHeight;
+  const im = frames.length ? frames[idx % frames.length] : null;
+  const dh = (r.height || h * 0.6) * 0.92;
+  ctx2.save();
+  if (im && im.complete && im.naturalWidth) {
+    const dw = im.naturalWidth * (dh / im.naturalHeight);
+    ctx2.drawImage(im, g.x - dw / 2, r.top + r.height - dh, dw, dh);
+  }
+  for (let i = 0; i < g.cookies.length; i++) {
+    const c = g.cookies[i];
+    ctx2.save();
+    ctx2.translate(c.x, c.y);
+    ctx2.rotate(c.spin);
+    ctx2.fillStyle = '#d9a86a';
+    ctx2.beginPath(); ctx2.arc(0, 0, 8, 0, Math.PI * 2); ctx2.fill();
+    ctx2.fillStyle = '#6b4a2a';
+    ctx2.beginPath(); ctx2.arc(-2.6, -2.2, 1.5, 0, Math.PI * 2); ctx2.fill();
+    ctx2.beginPath(); ctx2.arc(2.8, 1.6, 1.5, 0, Math.PI * 2); ctx2.fill();
+    ctx2.beginPath(); ctx2.arc(0.6, 3.4, 1.2, 0, Math.PI * 2); ctx2.fill();
+    ctx2.restore();
+  }
+  ctx2.fillStyle = 'rgba(58,52,46,.85)';
+  ctx2.font = '600 12px "Microsoft YaHei", "PingFang SC", sans-serif';
+  ctx2.fillText(g.score + ' / ' + GAME_TARGET, 12, 22);
+  ctx2.restore();
+}
+
+function endGame(win) {
+  const g = game;
+  game = null;
+  pet.style.visibility = '';
+  if (!g) return;
+  if (win) { react('turns', 900); spawnBubble(pickOne(['接满了！', '好厉害', '还想玩'])); }
+  else { spawnBubble('下次再来'); }
+}
+
 const trayEl = document.getElementById('tray');
 let sleepTimer = null;
 let miniOn = false;
@@ -1741,6 +2160,11 @@ function doTray(act) {
   }
   else if (act === 'scale') { toggleMini(); }
   else if (act === 'ghost') { toggleGhost(); }
+  else if (act === 'pat') { patHead(); spawnBubble(pickLine('shy')); }
+  else if (act === 'doodle') { startDoodle(); }
+  else if (act === 'family') { startFamily(); }
+  else if (act === 'dress') { nextOutfit(); }
+  else if (act === 'game') { startGame(); }
   else if (act === 'update') {
     spawnBubble('看看有没有新版…');
     if (bridge && bridge.checkUpdate) { try { bridge.checkUpdate(); } catch (e) {} }
@@ -1790,6 +2214,7 @@ window.__onUpdate = function (text, ev) {
   await initSound();
   startIdleWatch();
   noteTouch();
+  applyDayLook();
   spawnBubble('来啦');
   try { if (!localStorage.getItem('pet.charTip')) { localStorage.setItem('pet.charTip','1'); setTimeout(function(){ spawnBubble('长按腿或三指点一下可换角色'); }, 2600); } } catch (e) {}
   dailyGreeting();
