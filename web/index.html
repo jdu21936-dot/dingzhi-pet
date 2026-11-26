@@ -12,22 +12,54 @@
     <img id="pet" alt="">
   </div>
   <div id="tray" class="hidden">
-    <div class="tray-head">互动</div>
     <div class="tray-grid">
-      <button class="tray-btn" data-act="feed">喂食</button>
-      <button class="tray-btn" data-act="say">说话</button>
-      <button class="tray-btn" data-act="chute">开伞</button>
-      <button class="tray-btn" data-act="sleep">哄睡</button>
-      <button class="tray-btn" data-act="char">换人</button>
-      <button class="tray-btn" data-act="edge">贴边</button>
-      <button class="tray-btn" data-act="scale">变小</button>
-      <button class="tray-btn" data-act="ghost">隐身</button>
-      <button class="tray-btn" data-act="update">更新</button>
-      <button class="tray-btn" data-act="pat">摸摸</button>
-      <button class="tray-btn" data-act="doodle">涂鸦</button>
-      <button class="tray-btn" data-act="family">合影</button>
-      <button class="tray-btn" data-act="dress">换装</button>
-      <button class="tray-btn" data-act="game">接球</button>
+      <button class="tray-btn" data-act="feed" data-page="0"><svg viewBox="0 0 24 24"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2" />
+  <path d="M7 2v20" />
+  <path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7" /></svg><i>喂食</i></button>
+      <button class="tray-btn" data-act="say" data-page="0"><svg viewBox="0 0 24 24"><path d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719" /></svg><i>说话</i></button>
+      <button class="tray-btn" data-act="pat" data-page="0"><svg viewBox="0 0 24 24"><path d="M18 11V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2" />
+  <path d="M14 10V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v2" />
+  <path d="M10 10.5V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2v8" />
+  <path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15" /></svg><i>摸摸</i></button>
+      <button class="tray-btn" data-act="chute" data-page="0"><svg viewBox="0 0 24 24"><path d="M12 13v7a2 2 0 0 0 4 0" />
+  <path d="M12 2v2" />
+  <path d="M20.992 13a1 1 0 0 0 .97-1.274 10.284 10.284 0 0 0-19.923 0A1 1 0 0 0 3 13z" /></svg><i>开伞</i></button>
+      <button class="tray-btn" data-act="sleep" data-page="0"><svg viewBox="0 0 24 24"><path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401" /></svg><i>哄睡</i></button>
+      <button class="tray-btn" data-act="dress" data-page="0"><svg viewBox="0 0 24 24"><path d="M11.562 3.266a.5.5 0 0 1 .876 0L15.39 8.87a1 1 0 0 0 1.516.294L21.183 5.5a.5.5 0 0 1 .798.519l-2.834 10.246a1 1 0 0 1-.956.734H5.81a1 1 0 0 1-.957-.734L2.02 6.02a.5.5 0 0 1 .798-.519l4.276 3.664a1 1 0 0 0 1.516-.294z" />
+  <path d="M5 21h14" /></svg><i>换装</i></button>
+      <button class="tray-btn" data-act="doodle" data-page="0"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z" />
+  <path d="m15 5 4 4" /></svg><i>涂鸦</i></button>
+      <button class="tray-btn" data-act="more" data-page="0"><svg viewBox="0 0 24 24"><line x1="6" x2="10" y1="11" y2="11" />
+  <line x1="8" x2="8" y1="9" y2="13" />
+  <line x1="15" x2="15.01" y1="12" y2="12" />
+  <line x1="18" x2="18.01" y1="10" y2="10" />
+  <path d="M17.32 5H6.68a4 4 0 0 0-3.978 3.59c-.006.052-.01.101-.017.152C2.604 9.416 2 14.456 2 16a3 3 0 0 0 3 3c1 0 1.5-.5 2-1l1.414-1.414A2 2 0 0 1 9.828 16h4.344a2 2 0 0 1 1.414.586L17 18c.5.5 1 1 2 1a3 3 0 0 0 3-3c0-1.545-.604-6.584-.685-7.258-.007-.05-.011-.1-.017-.151A4 4 0 0 0 17.32 5z" /></svg><i>更多</i></button>
+      <button class="tray-btn" data-act="char" data-page="1"><svg viewBox="0 0 24 24"><path d="m17 2 4 4-4 4" />
+  <path d="M3 11v-1a4 4 0 0 1 4-4h14" />
+  <path d="m7 22-4-4 4-4" />
+  <path d="M21 13v1a4 4 0 0 1-4 4H3" /></svg><i>换人</i></button>
+      <button class="tray-btn" data-act="edge" data-page="1"><svg viewBox="0 0 24 24"><path d="M12 17v5" />
+  <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z" /></svg><i>贴边</i></button>
+      <button class="tray-btn" data-act="scale" data-page="1"><svg viewBox="0 0 24 24"><path d="m14 10 7-7" />
+  <path d="M20 10h-6V4" />
+  <path d="m3 21 7-7" />
+  <path d="M4 14h6v6" /></svg><i>变小</i></button>
+      <button class="tray-btn" data-act="ghost" data-page="1"><svg viewBox="0 0 24 24"><path d="M15 10v1" />
+  <path d="M7.528 20.472a1.6 1.6 0 012.277 0l1.057 1.056a1.6 1.6 0 002.276 0l1.057-1.056a1.6 1.6 0 012.277 0l1.114 1.114a1.4 1.4 0 002.414-1V10a8 8 0 00-16 0v10.586a1.4 1.4 0 002.414 1z" />
+  <path d="M9 10v1" /></svg><i>隐身</i></button>
+      <button class="tray-btn" data-act="update" data-page="1"><svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+  <path d="M21 3v5h-5" />
+  <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+  <path d="M8 16H3v5" /></svg><i>更新</i></button>
+      <button class="tray-btn" data-act="pat2" data-page="1"><svg viewBox="0 0 24 24"><path d="M18 11V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2" />
+  <path d="M14 10V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v2" />
+  <path d="M10 10.5V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2v8" />
+  <path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15" /></svg><i>摸摸</i></button>
+      <button class="tray-btn" data-act="back" data-page="1"><svg viewBox="0 0 24 24"><line x1="6" x2="10" y1="11" y2="11" />
+  <line x1="8" x2="8" y1="9" y2="13" />
+  <line x1="15" x2="15.01" y1="12" y2="12" />
+  <line x1="18" x2="18.01" y1="10" y2="10" />
+  <path d="M17.32 5H6.68a4 4 0 0 0-3.978 3.59c-.006.052-.01.101-.017.152C2.604 9.416 2 14.456 2 16a3 3 0 0 0 3 3c1 0 1.5-.5 2-1l1.414-1.414A2 2 0 0 1 9.828 16h4.344a2 2 0 0 1 1.414.586L17 18c.5.5 1 1 2 1a3 3 0 0 0 3-3c0-1.545-.604-6.584-.685-7.258-.007-.05-.011-.1-.017-.151A4 4 0 0 0 17.32 5z" /></svg><i>返回</i></button>
     </div>
   </div>
   <div id="picker" class="hidden">
