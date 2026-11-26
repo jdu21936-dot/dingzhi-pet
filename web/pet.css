@@ -216,7 +216,7 @@ html, body {
 #tray::-webkit-scrollbar { width: 0; height: 0; }
 #tray.hidden { opacity: 0; pointer-events: none; }
 /* 3 列 × 4 行：12 个按钮一屏放完，不用滑 */
-.tray-grid { display: grid; grid-template-columns: repeat(3, auto); gap: 3px; justify-items: center; }
+.tray-grid { display: flex; flex-direction: column; align-items: center; gap: 3px; }
 .tray-btn {
   position: static;
   transform: none;
@@ -293,7 +293,3 @@ html, body {
   0%, 100% { transform: translateY(1.5px) rotate(-1.2deg); }
   50%      { transform: translateY(3px)   rotate(1.2deg); }
 }
-
-/* 麦克风常听时按钮点亮 */
-.tray-btn.on { background: rgba(255,236,198,0.92); }
-.tray-btn.on svg { stroke: #b8721f; }
