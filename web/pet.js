@@ -2206,11 +2206,14 @@ function tickGame(now, dt) {
   if (now - g.t0 > g.next) {
     g.next = now - g.t0 + Math.max(380, 900 - g.score * 40);
     const u = gameUnit(w);
-    const cw = 13 * u;
+    // 半径直接跟视口宽走（约 7.5%），比按单位算稳，窗口放大就是更大的一颗
+    const cw = Math.max(10, w * 0.075);
+    // 边距固定按视口算：之前 30*u / 60*u 在 u 大时会把所有饼干挤在中间一小段里
+    const pad = Math.max(16, w * 0.12);
     g.cookies.push({
-      x: 30 * u + Math.random() * Math.max(20, w - 60 * u),
-      y: -12 * u,
-      vy: (g.speed + g.score * 7) * u,
+      x: pad + Math.random() * Math.max(10, w - pad * 2),
+      y: -14 * u,
+      vy: (g.speed + g.score * 7) * Math.max(0.8, u * 0.9),
       spin: Math.random() * 6,
       r: cw
     });
@@ -2227,11 +2230,13 @@ function tickGame(now, dt) {
     const c = g.cookies[i];
     c.y += c.vy * dt;
     c.spin += dt * 3.2;
+    if (c.eat) continue;   // 已经在播放被吃掉的过程
     if (c.y >= bodyTop && c.y <= bodyBot && Math.abs(c.x - g.x) < halfW) {
-      g.cookies.splice(i, 1);
+      c.eat = now;                        // 标记被吃掉，动画放完再移除
       g.score++;
       g.pop = { t: now, x: c.x, y: c.y };
       bumpStat('play');
+      react('chew', 420);                 // 角色嚼一下，看起来确实是吃掉了
       if (g.score >= GAME_TARGET) { endGame(true); return; }
       continue;
     }
@@ -2253,12 +2258,12 @@ function drawGame(now) {
   pet.style.translate = (g.x - baseCx).toFixed(1) + 'px 0px';
   ctx2.save();
   const gu = gameUnit(w);
-  for (let i = 0; i < g.cookies.length; i++) {
-    const c = g.cookies[i];
-    const cr = c.r || 13 * gu;
+  // 一颗饼干：外圈饼身 + 三颗巧克力豆
+  function paintCookie(px, py, cr, spin, alpha) {
     ctx2.save();
-    ctx2.translate(c.x, c.y);
-    ctx2.rotate(c.spin);
+    ctx2.globalAlpha = alpha;
+    ctx2.translate(px, py);
+    ctx2.rotate(spin);
     ctx2.fillStyle = '#d9a86a';
     ctx2.beginPath(); ctx2.arc(0, 0, cr, 0, Math.PI * 2); ctx2.fill();
     ctx2.fillStyle = '#6b4a2a';
@@ -2266,6 +2271,21 @@ function drawGame(now) {
     ctx2.beginPath(); ctx2.arc(cr * 0.35, cr * 0.20, cr * 0.19, 0, Math.PI * 2); ctx2.fill();
     ctx2.beginPath(); ctx2.arc(cr * 0.08, cr * 0.42, cr * 0.15, 0, Math.PI * 2); ctx2.fill();
     ctx2.restore();
+  }
+  const EAT_MS = 220;
+  const mouthY = r.top + r.height * 0.30;   // 大约嘴巴的位置，饼干往这里收
+  for (let i = g.cookies.length - 1; i >= 0; i--) {
+    const c = g.cookies[i];
+    const cr = c.r || Math.max(10, w * 0.075);
+    if (c.eat) {
+      const k = (now - c.eat) / EAT_MS;
+      if (k >= 1) { g.cookies.splice(i, 1); continue; }
+      const ex = c.x + (g.x - c.x) * k;          // 快速吸向角色
+      const ey = c.y + (mouthY - c.y) * k;
+      paintCookie(ex, ey, cr * (1 - k * 0.85), c.spin + k * 3, 1 - k * k);
+      continue;
+    }
+    paintCookie(c.x, c.y, cr, c.spin, 1);
   }
   if (g.pop) {
     const pt = (now - g.pop.t) / 620;
