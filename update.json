@@ -1,1 +1,6 @@
-{"versionCode": 98, "versionName": "1.96", "url": "https://raw.githubusercontent.com/jdu21936-dot/dingzhi-pet/main/dingzhi-pet.apk", "note": "去掉围巾装扮，保留草帽/毛线帽/王冠/蝴蝶结"}
+{
+ "versionCode": 99,
+ "versionName": "1.97",
+ "url": "https://raw.githubusercontent.com/jdu21936-dot/dingzhi-pet/main/dingzhi-pet.apk",
+ "note": "接饼干判定放宽到整身、下落变慢、接住有+1反馈；围巾装扮已删"
+}
