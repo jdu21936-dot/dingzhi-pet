@@ -197,9 +197,9 @@ html, body {
 #tray {
   position: absolute;
   right: 3px;
-  top: 50%;
-  transform: translateY(-50%);
-  max-height: 98%;
+  top: 2px;
+  bottom: 2px;          /* 上下都钉住：高度确定，overflow 才会真的滚 */
+  max-height: none;
   padding: 3px 2px;
   overflow-y: auto;
   overflow-x: hidden;
@@ -215,7 +215,6 @@ html, body {
 }
 #tray::-webkit-scrollbar { width: 0; height: 0; }
 #tray.hidden { opacity: 0; pointer-events: none; }
-/* 3 列 × 4 行：12 个按钮一屏放完，不用滑 */
 .tray-grid { display: flex; flex-direction: column; align-items: center; gap: 3px; }
 .tray-btn {
   position: static;
