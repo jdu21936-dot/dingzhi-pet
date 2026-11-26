@@ -203,7 +203,13 @@ html, body {
   transform: translateX(-50%) translateY(0);
   background: rgba(239, 230, 211, 0.98);
   border-radius: 14px;
-  padding: 5px 4px 6px;
+  padding: 4px 3px 5px;
+  /* 桌宠缩小时整个 WebView 视口会一起变小（约 102×143），固定尺寸会把底部裁掉：
+     高度上限 + 纵向滚动兜底，格子尺寸由 fitTray() 按视口算 */
+  max-height: 96%;
+  overflow-y: auto;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
   box-shadow: 0 8px 22px rgba(20, 24, 30, 0.26);
   z-index: 14;
   font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
@@ -215,11 +221,14 @@ html, body {
   pointer-events: none;
 }
 .tray-head {
-  font-size: 9px;
-  letter-spacing: .10em;
+  font-size: var(--tray-head, 9px);
+  letter-spacing: .08em;
   color: #8a8071;
   text-align: center;
-  padding-bottom: 4px;
+  padding-bottom: 3px;
+  position: sticky;
+  top: 0;
+  background: rgba(239, 230, 211, 0.98);
 }
 .tray-grid {
   display: grid;
@@ -231,7 +240,8 @@ html, body {
   flex-direction: column;
   align-items: center;
   gap: 1px;
-  padding: 4px 0 3px;
+  height: var(--cell, 30px);
+  padding: 0;
   border: none;
   background: transparent;
   border-radius: 10px;
@@ -239,8 +249,8 @@ html, body {
   font-family: inherit;
 }
 .tray-btn:active { background: #e5d8bf; }
-.tray-btn b { font-size: 13px; line-height: 1.1; font-weight: 400; }
-.tray-btn i { font-size: 8px; font-style: normal; color: #6a6255; white-space: nowrap; transform: scale(.94); }
+.tray-btn b { font-size: var(--tray-emoji, 13px); line-height: 1.05; font-weight: 400; }
+.tray-btn i { font-size: var(--tray-fs, 8px); font-style: normal; color: #6a6255; white-space: nowrap; }
 
 /* ---------- v1.53：作息 / 天气 / 换装 ---------- */
 #pet.night  { filter: brightness(.72) saturate(.9); }
