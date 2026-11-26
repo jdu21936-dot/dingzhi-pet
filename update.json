@@ -1,6 +1,6 @@
 {
- "versionCode": 106,
- "versionName": "2.04",
+ "versionCode": 107,
+ "versionName": "2.05",
  "url": "https://raw.githubusercontent.com/jdu21936-dot/dingzhi-pet/main/dingzhi-pet.apk",
- "note": "接饼干里的饼干、巧克力豆、分数、+1 全部跟随角色实际大小自适应缩放"
+ "note": "饼干基准尺寸加大到 13，缩放同时参考视口与角色两个口径；进游戏会打一条 u= 日志"
 }
