@@ -1,1 +1,1 @@
-{"versionCode":54,"versionName":"1.52","url":"https://raw.githubusercontent.com/jdu21936-dot/dingzhi-pet/main/dingzhi-pet.apk","note":"修复装新包后仍加载旧前端（升级时清空 web 热更目录）+ 托盘按钮改用 touchend 触发"}
+{"versionCode":55,"versionName":"1.53","url":"https://raw.githubusercontent.com/jdu21936-dot/dingzhi-pet/main/dingzhi-pet.apk","note":"新增：一天四段作息、天气联动（雨伞/雪/高温/大风）、它记得你、涂鸦留言、全家福、简笔换装、接饼干小游戏"}
