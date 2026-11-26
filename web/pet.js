@@ -1861,9 +1861,7 @@ function fitTray() {
   const cell = Math.max(19, Math.min(40, (vh * 0.94 - headH - 10) / rows));
   trayEl.style.setProperty('--cell', cell.toFixed(1) + 'px');
   trayEl.style.setProperty('--tray-head', Math.max(6.5, Math.min(9, cell * 0.26)).toFixed(1) + 'px');
-  trayEl.style.setProperty('--tray-emoji', Math.max(8, Math.min(15, cell * 0.42)).toFixed(1) + 'px');
-  trayEl.style.setProperty('--tray-fs', Math.max(5.5, Math.min(9, cell * 0.27)).toFixed(1) + 'px');
-  // 格子太小的时候标签只剩一团墨点，索性只留图标
+  trayEl.style.setProperty('--tray-fs', Math.max(6.5, Math.min(9.5, cell * 0.31)).toFixed(1) + 'px');
   trayEl.classList.toggle('compact', cell < 27);
 }
 
