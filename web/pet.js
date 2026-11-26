@@ -815,7 +815,7 @@ let peekSide = 0;
 const CHUTE_DUR = 4400;
 
 function startParachute() {
-  if (chute || !bridge) return;
+  if (chute) return;                    // 画布上画伞，不需要 bridge
   pet.classList.remove('hop', 'wiggle', 'shy');
   chute = { t0: performance.now(), dur: CHUTE_DUR, done: 0 };
   spawnBubble('跳伞～');
@@ -840,9 +840,15 @@ function drawChute(now) {
     'rotate(' + (sway * 0.55).toFixed(2) + 'deg) scale(' + sc.toFixed(3) + ')';
 
   const r = pet.getBoundingClientRect();
+  const wpx = fx.clientWidth || window.innerWidth;
   const cx = r.left + r.width / 2;
-  const cw = r.width * (1.06 - 0.5 * fold);
-  const canopyY = r.top - r.height * (0.05 + 0.12 * fold);
+  // 头顶到屏幕顶的可用高度：伞必须整把塞进这段空间，否则伞冠会被裁到屏幕外
+  // 用「未位移」的位置算可用高度：r.top 会被飘落的 translate 影响，直接用会让伞一路变大
+  const baseTop = r.top - dy;
+  const headRoom = Math.max(18, baseTop - 2);
+  const canopyWanted = r.width * (1.06 - 0.5 * fold);
+  const cw = Math.min(canopyWanted, wpx * 0.78, headRoom / 0.50);
+  const canopyY = r.top - Math.min(r.height * 0.05, Math.max(0, headRoom - cw * 0.50));
 
   ctx.save();
   ctx.globalAlpha = 1 - fold;
