@@ -1687,7 +1687,7 @@ function openTray() {
   if (!trayEl) return;
   closePicker();
   trayEl.classList.remove('hidden');
-  if (bridge && bridge.log) { try { bridge.log('打开互动托盘'); } catch (e) {} }
+  if (bridge && bridge.log) { try { bridge.log('打开互动托盘 v5'); } catch (e) {} }
 }
 function closeTray() {
   if (!trayEl) return;
@@ -1729,6 +1729,7 @@ function toggleGhost() {
 
 function doTray(act) {
   closeTray();
+  if (bridge && bridge.log) { try { bridge.log('托盘点击 -> ' + act); } catch (e) {} }
   if (act === 'feed') { addFood(); setTimeout(function () { spawnBubble('给我的吗？'); }, 240); }
   else if (act === 'say') { spawnBubble(randomLine()); }
   else if (act === 'chute') { startParachute(); }
@@ -1747,12 +1748,29 @@ function doTray(act) {
 }
 
 if (trayEl) {
+  let trayBusy = 0;
+  function trayHit(e) {
+    const t = e.target;
+    if (!t || !t.closest) return;
+    if (t.closest('.tray-head')) { closeTray(); return; }
+    const btn = t.closest('.tray-btn');
+    if (!btn) return;
+    const act = btn.getAttribute('data-act');
+    // touchend 与 click 可能都触发，250ms 内只认一次
+    const now = Date.now();
+    if (now - trayBusy < 250) return;
+    trayBusy = now;
+    doTray(act);
+  }
+  trayEl.addEventListener('touchend', function (e) {
+    e.stopPropagation();          // 别让 document 的 onUp 再走一遍手势逻辑
+    trayHit(e);
+  }, { passive: true });
   trayEl.addEventListener('click', function (e) {
-    const head = e.target.closest ? e.target.closest('.tray-head') : null;
-    if (head) { closeTray(); return; }
-    const btn = e.target.closest ? e.target.closest('.tray-btn') : null;
-    if (btn) doTray(btn.getAttribute('data-act'));
+    e.stopPropagation();
+    trayHit(e);
   });
+  if (bridge && bridge.log) { try { bridge.log('托盘事件已绑定'); } catch (e) {} }
 }
 
 // ---------- 启动 ----------
