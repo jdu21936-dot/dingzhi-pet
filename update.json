@@ -1,6 +1,6 @@
 {
- "versionCode": 105,
- "versionName": "2.03",
+ "versionCode": 106,
+ "versionName": "2.04",
  "url": "https://raw.githubusercontent.com/jdu21936-dot/dingzhi-pet/main/dingzhi-pet.apk",
- "note": "双指缩放下限从 0.60 放宽到 0.32；接饼干横向活动范围放宽"
+ "note": "接饼干里的饼干、巧克力豆、分数、+1 全部跟随角色实际大小自适应缩放"
 }
