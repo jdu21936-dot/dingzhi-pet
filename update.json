@@ -1,6 +1,6 @@
 {
- "versionCode": 108,
- "versionName": "2.06",
+ "versionCode": 109,
+ "versionName": "2.07",
  "url": "https://raw.githubusercontent.com/jdu21936-dot/dingzhi-pet/main/dingzhi-pet.apk",
- "note": "饼干改为按视口宽度取半径并铺满整个宽度；接住时播放被吃掉缩小淡出动画"
+ "note": "饼干直径加大到视口宽的 32%，从角色正上方居中落下；进入游戏角色先摆正中；分数与 +1 放大"
 }
