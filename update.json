@@ -1,6 +1,6 @@
 {
- "versionCode": 103,
- "versionName": "2.01",
+ "versionCode": 104,
+ "versionName": "2.02",
  "url": "https://raw.githubusercontent.com/jdu21936-dot/dingzhi-pet/main/dingzhi-pet.apk",
- "note": "接饼干改为复用角色本体（不再隐藏重画），修变小/分身/不能移动"
+ "note": "补回被误删的电量/通知函数；接饼干期间禁止其它画布动画抢角色"
 }
