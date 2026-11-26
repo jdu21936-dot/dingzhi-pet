@@ -1166,9 +1166,14 @@ function screenH() {
   return (window.screen && window.screen.height) || window.innerHeight || 1;
 }
 
+let lastMoveLog = 0;
 function flushMove() {
   flushQueued = false;
   if (!bridge || (!pendX && !pendY)) { pendX = 0; pendY = 0; return; }
+  if (bridge.log && Date.now() - lastMoveLog > 600) {
+    lastMoveLog = Date.now();
+    try { bridge.log('发送移动 pendX=' + pendX.toFixed(1) + ' pendY=' + pendY.toFixed(1) + ' screenW=' + screenW()); } catch (e) {}
+  }
   const fx = pendX / Math.max(1, screenW());
   const fy = pendY / Math.max(1, screenH());
   pendX = 0;
@@ -1246,6 +1251,7 @@ function onDown(e) {
   // 手指落在托盘上：交给托盘自己的 click 处理，不能在这里收起它，
   // 否则 touchend 时托盘已 pointer-events:none，click 永远不触发（表现为「按钮点了没反应」）
   if (e.target && e.target.closest && e.target.closest('#tray')) return;
+  if (doodle) doodle = null;     // 涂鸦期间按下先收笔，否则 onMove 全被 doodleAdd 吃掉，拖不动
   if (ghostOn) { toggleGhost(); return; }        // 藏起来状态下点一下恢复
   // 托盘打开时不要一碰就收：环形菜单正好压在角色身上，手指抖一下就没影子了。
   // 记下打开时刻，400ms 内的触摸都当作「还在看菜单」，只有明确点空白处才收起。
@@ -1253,7 +1259,7 @@ function onDown(e) {
     if (Date.now() - trayOpenedAt < 400) return;
     closeTray();
   }
-  if (chute) return;
+  if (chute) { chute = null; }   // 伞降期间也要能拖，按下就打断（原来 return，伞落完之前完全拖不动）
   // 抓饼干：手指落在饼干上就拎起来，拖到嘴边会吃掉
   const tGrab = e.touches ? e.touches[0] : e;
   const grabbed = foodAt(tGrab.clientX, tGrab.clientY);
@@ -1286,6 +1292,7 @@ function onDown(e) {
     lastSX: sx, lastSY: sy,
     distX: 0, distY: 0
   };
+  if (bridge && bridge.log) { try { bridge.log('press 建立 sx=' + sx.toFixed(1) + ' bridge=' + (!!bridge)); } catch (e) {} }
   dragged = false;
   lookAt(t.clientX, t.clientY);
   if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
@@ -1330,6 +1337,7 @@ function onMove(e) {
     clearTimeout(press.enjoyTimer);
     stopEnjoy();
     pet.classList.add('dangle');
+    if (bridge && bridge.log) { try { bridge.log('拖动开始 位移=' + moved.toFixed(1)); } catch (e) {} }
     if (Math.random() < 0.7) spawnBubble('放我下来～');
   }
   if (dragged && bridge) {
