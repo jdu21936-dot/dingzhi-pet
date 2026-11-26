@@ -1,1 +1,1 @@
-{"versionCode":46,"versionName":"1.44","url":"https://raw.githubusercontent.com/jdu21936-dot/dingzhi-pet/main/dingzhi-pet.apk","note":"完整更新流程测试版"}
+{"versionCode":47,"versionName":"1.45","url":"https://raw.githubusercontent.com/jdu21936-dot/dingzhi-pet/main/dingzhi-pet.apk","note":"改用 PackageInstaller 安装，兼容 vivo 等国产 ROM"}
