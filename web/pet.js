@@ -1213,7 +1213,7 @@ function updatePinch(touches) {
   if (!pinch || !bridge || !bridge.setScaleF) return;
   const ratio = touchDist(touches) / pinch.d0;
   let s = pinch.s0 * ratio;
-  if (s < 0.55) s = 0.55;
+  if (s < 0.32) s = 0.32;   // 下限放宽：要和 Java 侧一致，否则双指缩到一半就卡住
   if (s > 1.6) s = 1.6;
   if (Math.abs(s - curScale) < 0.02) return;
   curScale = s;
@@ -2145,7 +2145,7 @@ function clampGameX(x) {
   const vw = fx.clientWidth || window.innerWidth || 150;
   // 角色内容约 94px 宽（object-fit:contain 后），半宽 47。
   // 太靠边时整块被窗口裁掉，看着像"半个身子"，所以留 30% 视口做边距。
-  const pad = Math.max(26, vw * 0.30);
+  const pad = Math.max(20, vw * 0.14);
   if (!(x === x)) return vw / 2;
   return Math.max(pad, Math.min(vw - pad, x));
 }
