@@ -1069,6 +1069,9 @@ function onDown(e) {
     beginPinch(e.touches);
     return;
   }
+  // 手指落在托盘上：交给托盘自己的 click 处理，不能在这里收起它，
+  // 否则 touchend 时托盘已 pointer-events:none，click 永远不触发（表现为「按钮点了没反应」）
+  if (e.target && e.target.closest && e.target.closest('#tray')) return;
   if (ghostOn) { toggleGhost(); return; }        // 藏起来状态下点一下恢复
   if (trayOpen()) { closeTray(); return; }       // 托盘打开时点角色先收起
   if (chute) return;
