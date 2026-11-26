@@ -214,12 +214,12 @@ html, body {
   padding: 0;
   border: 0;
   border-radius: 7px;
-  background: #fffdfa;
+  background: rgba(255, 253, 250, 0.52);   /* 半透明：背后的角色和壁纸能透出来 */
   color: #141210;
   font-family: inherit;
   pointer-events: auto;
   transform: translate(-50%, -50%);
-  box-shadow: 0 1px 0 rgba(60, 50, 40, .10);
+  box-shadow: none;
 }
 .tray-btn svg {
   width: calc(var(--dot, 34px) * 0.56);
@@ -236,12 +236,15 @@ html, body {
   top: 100%;
   margin-top: 1px;
   font-style: normal;
-  font-size: 7.5px;
+  font-size: 8px;
+  font-weight: 500;
   line-height: 1;
-  color: #57503f;
+  color: #2b2620;
   white-space: nowrap;
+  /* 底下是半透明卡片和角色，文字要压得住 */
+  text-shadow: 0 0 2px #fffdf7, 0 0 2px #fffdf7, 0 0 3px #fffdf7;
 }
-.tray-btn:active { background: #141210; color: #fffdfa; }
+.tray-btn:active { background: rgba(20, 18, 16, 0.88); color: #fffdfa; }
 .tray-btn:active i { color: #fffdfa; }
 /* 第二页整页切换，不叠在第一页上 */
 .tray-btn[data-page="1"] { display: none; }
