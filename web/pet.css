@@ -194,63 +194,59 @@ html, body {
 /* ===== 互动托盘（长按腿弹出） ===== */
 #tray {
   position: absolute;
-  left: 50%;
-  bottom: 5px;
-  width: 94%;
-  max-width: 176px;
-  transform: translateX(-50%) translateY(0);
-  /* 与角色同源的纸片色：剪贴画贴在一张纸上 */
-  background: #f7f2e6;
-  border: 1px solid rgba(58, 52, 46, 0.55);
-  border-radius: 3px;
-  padding: 5px 5px 6px;
-  max-height: 96%;
-  overflow-y: auto;
-  touch-action: pan-y;
-  -webkit-overflow-scrolling: touch;
+  inset: 0;
+  pointer-events: none;         /* 只有图标本身可点 */
   z-index: 14;
   font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
-  transition: opacity .16s ease, transform .16s ease;
+  transition: opacity .16s ease;
 }
-#tray.hidden {
-  opacity: 0;
-  transform: translateX(-50%) translateY(14px);
-  pointer-events: none;
-}
-.tray-head {
-  font-size: var(--tray-head, 8px);
-  color: #9c9182;
-  text-align: left;
-  padding: 0 1px 4px;
-  position: sticky;
-  top: 0;
-  background: #f7f2e6;
-}
-.tray-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 2px;
-}
+#tray.hidden { opacity: 0; pointer-events: none; }
+.tray-grid { position: absolute; inset: 0; }
+/* 环形布局：坐标由 fitTray() 按视口算，不用 grid */
 .tray-btn {
+  position: absolute;
+  left: 0; top: 0;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: var(--cell, 30px);
+  width: var(--dot, 34px); height: var(--dot, 34px);
   padding: 0;
-  border: 1px solid rgba(58, 52, 46, 0.26);
-  background: #fdfaf2;
-  border-radius: 2px;
-  color: #3a342e;
+  border: 0;
+  border-radius: 7px;
+  background: #fffdfa;
+  color: #141210;
   font-family: inherit;
-  font-size: var(--tray-fs, 9px);
+  pointer-events: auto;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 1px 0 rgba(60, 50, 40, .10);
+}
+.tray-btn svg {
+  width: calc(var(--dot, 34px) * 0.56);
+  height: calc(var(--dot, 34px) * 0.56);
+  display: block;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.tray-btn i {
+  position: absolute;
+  top: 100%;
+  margin-top: 1px;
+  font-style: normal;
+  font-size: 7.5px;
   line-height: 1;
+  color: #57503f;
   white-space: nowrap;
 }
-.tray-btn:active {
-  background: #3a342e;
-  border-color: #3a342e;
-  color: #f7f2e6;
-}
+.tray-btn:active { background: #141210; color: #fffdfa; }
+.tray-btn:active i { color: #fffdfa; }
+/* 第二页整页切换，不叠在第一页上 */
+.tray-btn[data-page="1"] { display: none; }
+#tray.page2 .tray-btn[data-page="0"] { display: none; }
+#tray.page2 .tray-btn[data-page="1"] { display: flex; }
 
 /* ---------- v1.53：作息 / 天气 / 换装 ---------- */
 #pet.night  { filter: brightness(.72) saturate(.9); }
@@ -272,7 +268,4 @@ html, body {
   50%      { transform: translateY(-2px); }
 }
 
-/* 缩小状态：视口只剩 102×143 左右，缩小字号保住可点区域 */
-#tray.compact { padding: 3px 3px 4px; }
-#tray.compact .tray-grid { gap: 1px; }
-#tray.compact .tray-head { padding-bottom: 2px; }
+
