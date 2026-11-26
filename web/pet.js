@@ -1921,23 +1921,13 @@ function nextOutfit() {
   else spawnBubble(OUTFIT_LINES[outfit] || '好看吗');
 }
 
-function drawOutfit(now) {
-  if (outfit === 'none') return;
-  if (duoIntro || duoPose || familyShow || game) return;
-  let r = null;
-  try { r = objectRect(pet); } catch (e) {}
-  if (!r || r.width < 8) return;
-  if (r.top < -r.height * 0.5) return;      // 角色被伞降甩到屏幕外时不画
-  const cx = r.left + r.width / 2;
-  const top = r.top + r.height * 0.035;
-  const u = r.width / 100;                 // 以角色宽度为单位的比例尺
-  const bob = Math.sin(now / 620) * 0.6 * u;
-  const ctx2 = fx.getContext('2d');
+// 画一件装束：cx = 这个人的中心线，top = 头顶，neckY = 脖颈位置，u = 这个人宽度的 1/100
+function paintOutfit(ctx2, cx, top, neckY, u, bob, kind) {
   ctx2.save();
   ctx2.lineWidth = Math.max(1.2, 1.1 * u);
   ctx2.strokeStyle = 'rgba(58,52,46,.92)';
 
-  if (outfit === 'straw') {
+  if (kind === 'straw') {
     ctx2.fillStyle = '#e8c97a';
     ctx2.beginPath();
     ctx2.ellipse(cx, top + 2 * u + bob, 32 * u, 7.5 * u, 0, 0, Math.PI * 2);
@@ -1946,7 +1936,7 @@ function drawOutfit(now) {
     ctx2.beginPath();
     ctx2.ellipse(cx, top - 2 * u + bob, 17 * u, 12 * u, 0, Math.PI, Math.PI * 2);
     ctx2.fill(); ctx2.stroke();
-  } else if (outfit === 'beanie') {
+  } else if (kind === 'beanie') {
     ctx2.fillStyle = '#c96b6b';
     ctx2.beginPath();
     ctx2.ellipse(cx, top + 1 * u + bob, 19 * u, 13 * u, 0, Math.PI, Math.PI * 2);
@@ -1957,7 +1947,7 @@ function drawOutfit(now) {
     ctx2.stroke();
     ctx2.fillStyle = '#f2e6d8';
     ctx2.beginPath(); ctx2.arc(cx, top - 12 * u + bob, 5 * u, 0, Math.PI * 2); ctx2.fill(); ctx2.stroke();
-  } else if (outfit === 'crown') {
+  } else if (kind === 'crown') {
     ctx2.fillStyle = '#f2cf5b';
     ctx2.beginPath();
     const w2 = 17 * u;
@@ -1970,8 +1960,8 @@ function drawOutfit(now) {
     ctx2.lineTo(cx + w2, top + 3 * u + bob);
     ctx2.closePath();
     ctx2.fill(); ctx2.stroke();
-  } else if (outfit === 'scarf') {
-    const ny = r.top + r.height * 0.30 + bob;
+  } else if (kind === 'scarf') {
+    const ny = neckY + bob;
     ctx2.fillStyle = '#7d9ec4';
     ctx2.beginPath();
     ctx2.ellipse(cx, ny, 21 * u, 6 * u, 0, 0, Math.PI * 2);
@@ -1979,7 +1969,7 @@ function drawOutfit(now) {
     ctx2.beginPath();
     ctx2.ellipse(cx + 10 * u, ny + 13 * u, 5.5 * u, 11 * u, 0.2, 0, Math.PI * 2);
     ctx2.fill(); ctx2.stroke();
-  } else if (outfit === 'ribbon') {
+  } else if (kind === 'ribbon') {
     const ty = top - 2 * u + bob;
     ctx2.fillStyle = '#e88ba6';
     ctx2.beginPath();
@@ -1995,6 +1985,27 @@ function drawOutfit(now) {
     ctx2.beginPath(); ctx2.arc(cx, ty, 3.4 * u, 0, Math.PI * 2); ctx2.fill(); ctx2.stroke();
   }
   ctx2.restore();
+}
+
+function drawOutfit(now) {
+  if (outfit === 'none') return;
+  if (duoIntro || duoPose || familyShow || game) return;
+  let r = null;
+  try { r = objectRect(pet); } catch (e) {}
+  if (!r || r.width < 8) return;
+  if (r.top < -r.height * 0.5) return;      // 角色被伞降甩到屏幕外时不画
+  const ctx2 = fx.getContext('2d');
+  const top = r.top + r.height * 0.035;
+  const neckY = r.top + r.height * 0.30;
+  const duoMode = curChar().id === 'duo';
+  // 双子是两个人并排（duo.png = char_a 左 + char_b 右），装束要一人一份，
+  // 分别落在 1/4 和 3/4 的中心线上，尺寸也按半宽算，否则会变成两人中间悬空一个帽子。
+  const slots = duoMode ? [0.25, 0.75] : [0.5];
+  const u = duoMode ? r.width / 200 : r.width / 100;
+  const bob = Math.sin(now / 620) * 0.6 * u;
+  for (let i = 0; i < slots.length; i++) {
+    paintOutfit(ctx2, r.left + r.width * slots[i], top, neckY, u, bob, outfit);
+  }
 }
 
 // ---------- 全家福：三个角色同框 ----------
