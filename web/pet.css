@@ -204,7 +204,8 @@ html, body {
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
-  touch-action: pan-y;
+  touch-action: none;   /* 必须 none：pan-y 会让 WebView 自己接管纵向手势，
+                           于是 touchmove 不再交给 JS，原生滚动在缩小过的窗口里又不动 */
   scrollbar-width: none;
   pointer-events: auto;          /* 整条要能滚，所以它自己得收触摸 */
   z-index: 14;
