@@ -831,9 +831,9 @@ function drawChute(now) {
   const fold = chute.done ? Math.min(1, (now - chute.done) / 300) : 0;
 
   const ease = 1 - Math.pow(1 - p, 1.75);        // 先快后慢，像被伞拽着
-  const dy = -(1 - ease) * h * 0.16;   // 原为 0.62：角色会被推出窗口顶部，头被切一半
+  const dy = -(1 - ease) * h * 0.045;  // 只抬 4.5% 屏高（约 9px）：窗口头距仅 38px，再大会被切
   const sway = Math.sin(p * Math.PI * 4.6) * 5;  // 左右轻摆
-  const sc = chute.done ? 1 : 0.92 + 0.08 * ease;
+  const sc = chute.done ? 1 : 0.96 + 0.04 * ease;
 
   pet.style.transformOrigin = '50% 90%';
   pet.style.transform =
