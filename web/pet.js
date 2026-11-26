@@ -1251,7 +1251,10 @@ function onDown(e) {
   // 手指落在托盘上：交给托盘自己的 click 处理，不能在这里收起它，
   // 否则 touchend 时托盘已 pointer-events:none，click 永远不触发（表现为「按钮点了没反应」）
   if (e.target && e.target.closest && e.target.closest('#tray')) return;
-  if (doodle) doodle = null;     // 涂鸦期间按下先收笔，否则 onMove 全被 doodleAdd 吃掉，拖不动
+  if (doodle) {                 // 涂鸦期间按下先收笔，否则 onMove 全被 doodleAdd 吃掉，拖不动
+    doodle = null;
+    try { if (bridge && bridge.setFullscreen) bridge.setFullscreen(false); } catch (e) {}
+  }
   // 托盘打开时不要一碰就收：环形菜单正好压在角色身上，手指抖一下就没影子了。
   // 记下打开时刻，400ms 内的触摸都当作「还在看菜单」，只有明确点空白处才收起。
   if (trayOpen()) {
@@ -1924,6 +1927,8 @@ function refreshNotify() {
 }
 
 function startDoodle() {
+  // 涂鸦要画满整个手机屏幕：先把悬浮窗撑到全屏，退出时再缩回桌宠大小
+  try { if (bridge && bridge.setFullscreen) bridge.setFullscreen(true); } catch (e) {}
   doodle = { pts: [], t0: performance.now(), dur: 7000 };
   spawnBubble(pickOne(['画吧，我在看', '给你张纸', '写点什么？']));
 }
@@ -1945,6 +1950,7 @@ function drawDoodle(now) {
   if (t > doodle.dur || (doodle.last && idle > 2600)) {
     if (doodle.pts.length > 8) spawnBubble(pickOne(['画的什么呀', '我看到了', '收下了', '这个我要留着']));
     doodle = null;
+    try { if (bridge && bridge.setFullscreen) bridge.setFullscreen(false); } catch (e) {}
     return;
   }
   const a = t > doodle.dur - 900 ? Math.max(0, 1 - (t - (doodle.dur - 900)) / 900) : 1;
@@ -2274,6 +2280,7 @@ function doTray(act) {
   else if (act === 'scale') { toggleMini(); }
   else if (act === 'pat') { patHead(); spawnBubble(pickLine('shy')); }
   else if (act === 'doodle') { startDoodle(); }
+  else if (act === 'edge') { if (bridge && bridge.snapToEdge) bridge.snapToEdge(); }
   else if (act === 'family') { startFamily(); }
   else if (act === 'dress') { nextOutfit(); }
   else if (act === 'game') { startGame(); }
