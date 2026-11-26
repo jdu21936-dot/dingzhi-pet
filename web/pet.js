@@ -1050,6 +1050,7 @@ function pickOne(arr) {
 
 // 眼神跟随：用独立的 translate 属性，不抢 transform（动画还在用 transform）
 function lookAt(clientX, clientY) {
+  if (game) return;   // 接饼干时横向由游戏接管，别跟 translate 抢
   const r = pet.getBoundingClientRect();
   if (!r.width) return;
   const cx = r.left + r.width / 2;
@@ -1242,7 +1243,7 @@ function drawBubbles(now) {
 // canvas 在画一个、<img> 也显着，位置只差几像素，看起来像两个。
 // 改成每帧按状态强制同步一次，任何一方改错都会在下一帧被纠正。
 function syncPetVisibility() {
-  const busy = !!(duoIntro || duoPose || familyShow || game);
+  const busy = !!(duoIntro || duoPose || familyShow);   // 接饼干不再算独占：角色复用 <img>
   if (busy) {
     if (pet.style.visibility !== 'hidden') pet.style.visibility = 'hidden';
   } else if (pet.style.visibility === 'hidden') {
@@ -2129,8 +2130,13 @@ function startGame() {
   clearOverlays('game');
   game = { cookies: [], score: 0, t0: performance.now(), next: 0, x: 0, speed: 46, miss: 0, pop: null };
   const r = pet.getBoundingClientRect();
-  game.x = clampGameX(r.left + r.width / 2);
-  pet.style.visibility = 'hidden';
+  game.cx = r.left + r.width / 2;      // 角色原本的中心，横向平移以它为基准
+  game.x = clampGameX(game.cx);
+  // 不再隐藏角色。canvas 只画饼干和分数，角色本体仍由 <img> 显示，
+  // 大小/装扮/待机动画跟平时完全一样，横向位置用 translate 平移过去。
+  // 之前是「藏起 <img> + 自己在 canvas 里画一个」，两套尺寸算法一对不上就变小、就分身。
+  pet.style.visibility = '';
+  pet.style.translate = '0px 0px';
   if (bridge && bridge.log) { try { bridge.log('接饼干：开始'); } catch (e) {} }
   spawnBubble('接住饼干！');
 }
@@ -2177,13 +2183,11 @@ function drawGame(now) {
   const r = pet.getBoundingClientRect();
   const w = fx.clientWidth || window.innerWidth;
   const h = fx.clientHeight || window.innerHeight;
-  const im = frames.length ? frames[idx % frames.length] : null;
-  const dh = (r.height || h * 0.6) * 0.92;
+  // 角色不在这里画：让 <img> 自己显示、用 translate 平移，
+  // 尺寸/装扮/动画都跟平时一致，也不会和 DOM 那个撞成"分身"。
+  const baseCx = g.cx || (r.left + r.width / 2);
+  pet.style.translate = (g.x - baseCx).toFixed(1) + 'px 0px';
   ctx2.save();
-  if (im && im.complete && im.naturalWidth) {
-    const dw = im.naturalWidth * (dh / im.naturalHeight);
-    ctx2.drawImage(im, g.x - dw / 2, r.top + r.height - dh, dw, dh);
-  }
   for (let i = 0; i < g.cookies.length; i++) {
     const c = g.cookies[i];
     ctx2.save();
@@ -2219,6 +2223,7 @@ function endGame(win) {
   const g = game;
   game = null;
   pet.style.visibility = '';
+  pet.style.translate = '';
   if (!g) return;
   if (win) { react('turns', 900); spawnBubble(pickOne(['接满了！', '好厉害', '还想玩'])); }
   else { spawnBubble('下次再来'); }
