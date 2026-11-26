@@ -1194,8 +1194,7 @@ function touchDist(t) {
 
 function beginPinch(touches) {
   if (press) {
-    clearTimeout(press.feedTimer);
-  clearTimeout(press.charTimer);
+    clearTimeout(press.holdTimer);
     clearTimeout(press.chuteTimer);
   }
   press = null;
@@ -1284,30 +1283,16 @@ function onDown(e) {
   dragged = false;
   lookAt(t.clientX, t.clientY);
   if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
-  // 长按 = 喂食（换档改成双击，见 onUp）
-  const r0 = pet.getBoundingClientRect();
-  const fy0 = (t.clientY - r0.top) / Math.max(1, r0.height);
-  if (fy0 < 0.42) {
-    // 头顶按住 0.7s = 眯眼享受；一直按住到 2.4s 才开伞
-    press.enjoyTimer = setTimeout(() => {
-      if (!dragged) startEnjoy();
-    }, 700);
-    press.chuteTimer = setTimeout(() => {
-      if (!dragged && enjoying) { stopEnjoy(); startParachute(); }
-    }, 2400);
-  } else if (fy0 > 0.66) {
-    // 腿长按 = 弹出互动托盘。320ms 就出（原来 620ms，按住稍短一点就弹不出来）
-    // 并且按住腿时手指的小抖动不算拖动，否则 timer 每次都被 clearTimeout 掉
-    press.legHold = true;
-    press.charTimer = setTimeout(() => {
-      if (!dragged || press.legHold) openTray();
-    }, 320);
-  } else {
-    // 身体长按 = 喂饼干
-    press.feedTimer = setTimeout(() => {
-      if (!dragged) feed();
-    }, 650);
-  }
+  // 长按角色任意位置 400ms = 弹出互动托盘。
+  // 不再按身体部位分流（原来头顶=眯眼+开伞、身体=喂饼干、腿=托盘，得记三套手势），
+  // 这些功能都在托盘里，按下即可选。
+  // 拖动优先：手指位移超过 14px 就会清掉这个定时器，所以拖动不会误弹托盘。
+  press.holdTimer = setTimeout(() => {
+    if (!dragged) {
+      press.trayShown = true;   // 标记：这次长按已经弹过托盘，松手不再当点击处理
+      openTray();
+    }
+  }, 400);
 }
 
 function onMove(e) {
@@ -1330,8 +1315,7 @@ function onMove(e) {
   const dy = t.clientY - press.lastY;
   if (!dragged && Math.hypot(t.clientX - press.x, t.clientY - press.y) > 14) {
     dragged = true;
-    clearTimeout(press.feedTimer);
-    if (!press.legHold) clearTimeout(press.charTimer);
+    clearTimeout(press.holdTimer);
     clearTimeout(press.enjoyTimer);
     stopEnjoy();
     pet.classList.add('dangle');
@@ -1364,8 +1348,7 @@ function onUp(e) {
   if (doodle || game) return;
   if (!press) return;
   if (press.dragged) bumpStat('drag');
-  clearTimeout(press.feedTimer);
-  clearTimeout(press.charTimer);
+  clearTimeout(press.holdTimer);
   clearTimeout(press.chuteTimer);
   clearTimeout(press.enjoyTimer);
   stopEnjoy();
@@ -1405,7 +1388,7 @@ function onUp(e) {
     return;
   }
 
-  if (!dragged) {
+  if (!dragged && !press.trayShown) {
     const now = Date.now();
     noteTouch();
 
